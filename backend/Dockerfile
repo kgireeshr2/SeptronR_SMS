@@ -16,4 +16,5 @@ COPY . .
 
 EXPOSE 8000
 
-CMD ["gunicorn", "main:app", "-k", "uvicorn.workers.UvicornWorker", "--workers", "4", "--bind", "0.0.0.0:8000", "--timeout", "120"]
+# Render injects PORT env var; fall back to 8000 locally
+CMD gunicorn main:app -k uvicorn.workers.UvicornWorker --workers 4 --bind 0.0.0.0:${PORT:-8000} --timeout 120

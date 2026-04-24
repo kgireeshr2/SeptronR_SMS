@@ -31,7 +31,7 @@ def upgrade() -> None:
         sa.Column('updated_at', sa.DateTime(timezone=True), nullable=False,
                   server_default=sa.text('NOW()')),
         sa.Column('expires_at', sa.DateTime(timezone=True), nullable=False,
-                  server_default=sa.text('(DATE_ADD(NOW(), INTERVAL 24 HOUR))')),
+                  server_default=sa.text('(NOW() + INTERVAL '24 hours')')),
     )
     op.create_index('ix_conv_session_user_channel', 'conversation_sessions',
                     ['user_id', 'channel'])

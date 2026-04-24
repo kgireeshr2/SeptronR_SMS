@@ -61,7 +61,7 @@ def downgrade() -> None:
     # Restore links from vendors.school_id
     op.execute(
         """INSERT INTO vendor_school_links (id, vendor_id, school_id, commission_pct, is_active, created_at, updated_at)
-           SELECT UUID(), id, school_id, 0, 1, NOW(), NOW()
+           SELECT gen_random_uuid(), id, school_id, 0, 1, NOW(), NOW()
            FROM vendors WHERE school_id IS NOT NULL"""
     )
 

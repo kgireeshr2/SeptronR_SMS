@@ -113,7 +113,7 @@ async def tool_attendance_today(db, school_id, class_name=None):
     present, absent, late = sm.get("present", 0), sm.get("absent", 0), sm.get("late", 0)
     total = present + absent + late
     absent_list = await _q(db, f"""
-        SELECT CONCAT(s.first_name,' ',s.last_name) as name,
+        SELECT s.first_name||' '||s.last_name as name,
                c.name as class_name, cs.name as section
         FROM student_attendance sa
         JOIN attendance_sessions ats ON sa.session_id=ats.id
@@ -141,8 +141,8 @@ async def tool_fee_summary(db, school_id, period="month"):
         df = "EXTRACT(YEAR FROM payment_date)=EXTRACT(YEAR FROM NOW())"
         label = "This Year"
     else:
-        df = """STR_TO_DATE(CONCAT(YEAR(payment_date),'-',MONTH(payment_date),'-01'),'%Y-%m-%d')
-                =DATE_FORMAT(NOW(),'%Y-%m-01')"""
+        df = """DATE_TRUNC('month', payment_date)
+                =DATE_TRUNC('month', NOW())"""
         label = "This Month"
     collected = await _scalar(db, f"SELECT COALESCE(SUM(amount),0) FROM fee_payments WHERE school_id=:school_id AND {df}", p)
     txns = await _scalar(db, f"SELECT COUNT(*) FROM fee_payments WHERE school_id=:school_id AND {df}", p)
@@ -164,7 +164,7 @@ async def tool_fee_defaulters(db, school_id, min_amount=0, class_name=None):
         p["class_name"] = f"%{class_name}%"
         cf = "AND LOWER(c.name) LIKE LOWER(:class_name)"
     rows = await _q(db, f"""
-        SELECT CONCAT(s.first_name,' ',s.last_name) as student_name,
+        SELECT s.first_name||' '||s.last_name as student_name,
                c.name as class_name, cs.name as section,
                COALESCE(SUM(fi.balance_amount),0) as pending
         FROM fee_invoices fi
@@ -245,9 +245,9 @@ async def tool_accounting_summary(db, school_id):
     p = {"school_id": school_id}
     try:
         inc_m = await _scalar(db, """SELECT COALESCE(SUM(amount),0) FROM income_entries WHERE school_id=:school_id
-            AND STR_TO_DATE(CONCAT(YEAR(entry_date),'-',MONTH(entry_date),'-01'),'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-01')""", p)
+            AND DATE_TRUNC('month', entry_date)=DATE_TRUNC('month', NOW())""", p)
         exp_m = await _scalar(db, """SELECT COALESCE(SUM(amount),0) FROM expense_entries WHERE school_id=:school_id
-            AND STR_TO_DATE(CONCAT(YEAR(entry_date),'-',MONTH(entry_date),'-01'),'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-01')""", p)
+            AND DATE_TRUNC('month', entry_date)=DATE_TRUNC('month', NOW())""", p)
         inc_y = await _scalar(db, "SELECT COALESCE(SUM(amount),0) FROM income_entries WHERE school_id=:school_id AND EXTRACT(YEAR FROM entry_date)=EXTRACT(YEAR FROM NOW())", p)
         exp_y = await _scalar(db, "SELECT COALESCE(SUM(amount),0) FROM expense_entries WHERE school_id=:school_id AND EXTRACT(YEAR FROM entry_date)=EXTRACT(YEAR FROM NOW())", p)
         return {"income_month": int(inc_m), "expense_month": int(exp_m), "net_month": int(inc_m)-int(exp_m),
@@ -302,7 +302,7 @@ async def tool_admissions_summary(db, school_id):
         """, p)
         this_month = await _scalar(db, """
             SELECT COUNT(*) FROM admission_enquiries WHERE school_id=:school_id
-            AND STR_TO_DATE(CONCAT(YEAR(created_at),'-',MONTH(created_at),'-01'),'%Y-%m-%d')=DATE_FORMAT(NOW(),'%Y-%m-01')
+            AND DATE_TRUNC('month', created_at)=DATE_TRUNC('month', NOW())
         """, p)
         return {"by_status": by_status, "this_month": int(this_month)}
     except Exception:

@@ -40,8 +40,8 @@ async def admin_dashboard(
         db,
         """SELECT COALESCE(SUM(amount), 0) FROM fee_payments
            WHERE school_id = :school_id
-             AND STR_TO_DATE(CONCAT(YEAR(payment_date),'-',MONTH(payment_date),'-01'),'%Y-%m-%d')
-               = STR_TO_DATE(CONCAT(YEAR(NOW()),'-',MONTH(NOW()),'-01'),'%Y-%m-%d')""",
+             AND DATE_TRUNC('month', payment_date)
+               = DATE_TRUNC('month', NOW())""",
         p,
     )
     total_fee_outstanding = await _scalar(
@@ -73,13 +73,13 @@ async def admin_dashboard(
     # Monthly fee collection last 6 months
     fee_trend_raw = await db.execute(
         text(
-            """SELECT DATE_FORMAT(STR_TO_DATE(CONCAT(YEAR(payment_date),'-',MONTH(payment_date),'-01'),'%Y-%m-%d'),'%b %Y') AS month,
+            """SELECT TO_CHAR(DATE_TRUNC('month', payment_date), 'Mon YYYY') AS month,
                       COALESCE(SUM(amount), 0) AS amount
                FROM fee_payments
                WHERE school_id = :school_id
                  AND payment_date >= (NOW( + INTERVAL '-6 months'))
-               GROUP BY STR_TO_DATE(CONCAT(YEAR(payment_date),'-',MONTH(payment_date),'-01'),'%Y-%m-%d')
-               ORDER BY STR_TO_DATE(CONCAT(YEAR(payment_date),'-',MONTH(payment_date),'-01'),'%Y-%m-%d')"""
+               GROUP BY DATE_TRUNC('month', payment_date)
+               ORDER BY DATE_TRUNC('month', payment_date)"""
         ),
         p,
     )

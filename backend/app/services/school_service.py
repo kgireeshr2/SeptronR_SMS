@@ -287,7 +287,7 @@ async def seed_school_defaults(school_id: str, db: AsyncSession) -> None:
                 "INSERT INTO document_templates "
                 "(id, school_id, template_name, template_type, canvas_width_mm, canvas_height_mm, "
                 "template_html, layout_json, is_default, is_active, created_at, updated_at) "
-                "VALUES (UUID(), :sid, :tname, :ttype, :w, :h, :html, NULL, :is_def, 1, "
+                "VALUES (gen_random_uuid(), :sid, :tname, :ttype, :w, :h, :html, NULL, :is_def, 1, "
                 "GETUTCDATE(), GETUTCDATE())"
             ),
             {
@@ -318,7 +318,7 @@ async def seed_school_defaults(school_id: str, db: AsyncSession) -> None:
                 "INSERT INTO notification_templates "
                 "(id, school_id, name, channels, event_trigger, subject, body_template, "
                 "is_active, is_default, created_at, updated_at) "
-                "VALUES (UUID(), :sid, :name, :ch, :evt, :subj, :body, "
+                "VALUES (gen_random_uuid(), :sid, :name, :ch, :evt, :subj, :body, "
                 ":is_active, :is_def, GETUTCDATE(), GETUTCDATE())"
             ),
             {

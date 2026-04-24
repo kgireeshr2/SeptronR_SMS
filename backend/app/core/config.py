@@ -1,4 +1,5 @@
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
 from typing import List
 
 
@@ -16,7 +17,17 @@ class Settings(BaseSettings):
 
     ALLOWED_ORIGINS: List[str] = ["http://localhost:3000", "http://localhost:5173"]
 
-    DATABASE_URL: str = "mysql+aiomysql://sms_user:sms_pass@localhost:3306/sms_db"
+    DATABASE_URL: str = "postgresql+asyncpg://sms_user:sms_pass@localhost:5432/sms_db"
+
+    # Render injects DATABASE_URL as "postgresql://..." — auto-fix to asyncpg driver
+    @field_validator("DATABASE_URL", mode="before")
+    @classmethod
+    def fix_db_url(cls, v: str) -> str:
+        if v.startswith("postgres://"):
+            v = v.replace("postgres://", "postgresql+asyncpg://", 1)
+        elif v.startswith("postgresql://"):
+            v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        return v
     REDIS_ENABLED: bool = True
     REDIS_URL: str = "redis://localhost:6379/0"
     CELERY_BROKER_URL: str = "redis://localhost:6379/1"

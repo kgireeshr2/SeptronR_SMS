@@ -90,7 +90,15 @@ async def install(payload: InstallRequest, db: AsyncSession = Depends(get_db)):
 
     steps = []
 
-    # ── Step 1: Create all tables ─────────────────────────────────────────────
+    # ── Step 1: Enable uuid-ossp extension ───────────────────────────────────────
+    try:
+        async with engine.begin() as conn:
+            await conn.execute(text('CREATE EXTENSION IF NOT EXISTS "uuid-ossp"'))
+        steps.append("PostgreSQL uuid-ossp extension enabled")
+    except Exception as e:
+        steps.append(f"uuid-ossp extension note: {str(e)[:100]}")
+
+    # ── Step 2: Create all tables ───────────────────────────────────────────────
     try:
         # Import all models so metadata is populated
         import app.models  # noqa: F401 — registers all models
@@ -100,7 +108,7 @@ async def install(payload: InstallRequest, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Schema creation failed: {str(e)}")
 
-    # ── Step 2: Seed permissions ──────────────────────────────────────────────
+    # ── Step 3: Seed permissions ──────────────────────────────────────────────
     try:
         from app.scripts.seed_data import (
             seed_permissions, seed_roles, seed_super_admin
@@ -113,7 +121,7 @@ async def install(payload: InstallRequest, db: AsyncSession = Depends(get_db)):
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Permission/role seeding failed: {str(e)}")
 
-    # ── Step 3: Create super admin ────────────────────────────────────────────
+    # ── Step 4: Create super admin ────────────────────────────────────────────
     try:
         # Allow override via request body
         if payload.admin_email:
