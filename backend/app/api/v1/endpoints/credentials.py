@@ -71,7 +71,7 @@ async def list_credential_users(
                 u.username,
                 u.is_active,
                 s.id AS linked_id,
-                s.first_name + ' ' + s.last_name AS display_name,
+                s.first_name || ' ' || s.last_name AS display_name,
                 s.admission_number AS linked_ref
             FROM students s
             LEFT JOIN users u ON u.id = s.user_id
@@ -81,7 +81,7 @@ async def list_credential_users(
         if search:
             q += " AND (s.first_name LIKE :q OR s.last_name LIKE :q OR s.admission_number LIKE :q OR u.email LIKE :q)"
             params["q"] = f"%{search}%"
-        q += f" ORDER BY s.first_name OFFSET {skip} ROWS FETCH NEXT {limit} ROWS ONLY"
+        q += f" ORDER BY s.first_name LIMIT {limit} OFFSET {skip}"
         rows = (await db.execute(text(q), params)).fetchall()
         for r in rows:
             results.append({
@@ -115,7 +115,7 @@ async def list_credential_users(
         if search:
             q += " AND (sp.name LIKE :q OR sp.phone LIKE :q OR u.email LIKE :q)"
             params["q"] = f"%{search}%"
-        q += f" ORDER BY sp.name OFFSET {skip} ROWS FETCH NEXT {limit} ROWS ONLY"
+        q += f" ORDER BY sp.name LIMIT {limit} OFFSET {skip}"
         rows = (await db.execute(text(q), params)).fetchall()
         for r in rows:
             results.append({
@@ -139,7 +139,7 @@ async def list_credential_users(
                 u.username,
                 u.is_active,
                 st.id AS linked_id,
-                st.first_name + ' ' + st.last_name AS display_name,
+                st.first_name || ' ' || st.last_name AS display_name,
                 st.employee_id AS linked_ref
             FROM staff st
             LEFT JOIN users u ON u.id = st.user_id
@@ -149,7 +149,7 @@ async def list_credential_users(
         if search:
             q += " AND (st.first_name LIKE :q OR st.last_name LIKE :q OR st.employee_id LIKE :q OR u.email LIKE :q)"
             params["q"] = f"%{search}%"
-        q += f" ORDER BY st.first_name OFFSET {skip} ROWS FETCH NEXT {limit} ROWS ONLY"
+        q += f" ORDER BY st.first_name LIMIT {limit} OFFSET {skip}"
         rows = (await db.execute(text(q), params)).fetchall()
         for r in rows:
             results.append({

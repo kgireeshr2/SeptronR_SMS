@@ -841,7 +841,7 @@ class FlowEngine:
 
         rows = await _q(
             db,
-            f"""SELECT s.first_name + ' ' + s.last_name AS student_name,
+            f"""SELECT s.first_name || ' ' || s.last_name AS student_name,
                  s.admission_number,
                  c.name AS class_name,
                  COALESCE(SUM(fi.balance_amount),0) AS balance
@@ -882,7 +882,7 @@ class FlowEngine:
 
         rows = await _q(
             db,
-            f"""SELECT s.first_name + ' ' + s.last_name AS name,
+            f"""SELECT s.first_name || ' ' || s.last_name AS name,
                  s.admission_number, c.name AS class_name,
                  COALESCE(SUM(fi.balance_amount),0) AS balance
                FROM students s
@@ -892,7 +892,7 @@ class FlowEngine:
                LEFT JOIN classes c ON se.class_id = c.id
                WHERE s.is_active=true {s_where}
                  AND (
-                   LOWER(s.first_name + ' ' + s.last_name) LIKE LOWER(:q)
+                   LOWER(s.first_name || ' ' || s.last_name) LIKE LOWER(:q)
                    OR LOWER(s.admission_number) LIKE LOWER(:q)
                  )
                GROUP BY s.id, s.first_name, s.last_name, s.admission_number, c.name""",
@@ -1162,7 +1162,7 @@ class FlowEngine:
         session.current_flow = None
         rows = await _q(
             db,
-            """SELECT (st.first_name + ' ' + st.last_name) AS staff_name,
+            """SELECT (st.first_name || ' ' || st.last_name) AS staff_name,
                  lt.name AS leave_type, sl.from_date, sl.to_date,
                  CAST(sl.days_count AS VARCHAR) + ' days' AS days,
                  sl.status
@@ -1308,7 +1308,7 @@ class FlowEngine:
             # Admin/Teacher: student-wise results for selected exam
             rows = await _q(
                 db,
-                f"""SELECT s.first_name + ' ' + s.last_name AS student,
+                f"""SELECT s.first_name || ' ' || s.last_name AS student,
                      s.admission_number,
                      COALESCE(c.name, '') AS class_name,
                      sm.marks_obtained,
@@ -1372,7 +1372,7 @@ class FlowEngine:
 
         rows = await _q(
             db,
-            f"""SELECT s.first_name + ' ' + s.last_name AS name,
+            f"""SELECT s.first_name || ' ' || s.last_name AS name,
                  s.admission_number,
                  s.date_of_birth, s.gender, COALESCE(u.phone, '') AS phone,
                  c.name AS class_name, sec.name AS section_name,
@@ -1384,7 +1384,7 @@ class FlowEngine:
                LEFT JOIN users u ON s.user_id = u.id
                WHERE s.is_active=true {s_where}
                  AND (
-                   LOWER(s.first_name + ' ' + s.last_name) LIKE LOWER(:q LIMIT 5)
+                   LOWER(s.first_name || ' ' || s.last_name) LIKE LOWER(:q)
                    OR LOWER(s.admission_number) LIKE LOWER(:q)
                  )""",
             s_p,
@@ -1632,7 +1632,7 @@ class FlowEngine:
     async def _fee_collect_find_student(self, session, message, db, school_id) -> BotResponse:
         rows = await _q(
             db,
-            """SELECT s.id, s.first_name + ' ' + s.last_name AS name,
+            """SELECT s.id, s.first_name || ' ' || s.last_name AS name,
                  s.admission_number, c.name AS class_name,
                  COALESCE((SELECT SUM(fi.balance_amount) FROM fee_invoices fi
                            WHERE fi.student_id = s.id AND fi.status NOT IN ('paid','cancelled')),0) AS outstanding
@@ -1640,7 +1640,7 @@ class FlowEngine:
                LEFT JOIN student_enrollments se ON se.student_id = s.id AND se.is_current = 1
                LEFT JOIN classes c ON se.class_id = c.id
                WHERE s.school_id = :sid AND s.is_active=true
-                 AND (LOWER(s.first_name + ' ' + s.last_name) LIKE LOWER(:q LIMIT 5)
+                 AND (LOWER(s.first_name || ' ' || s.last_name) LIKE LOWER(:q)
                       OR LOWER(s.admission_number) LIKE LOWER(:q))""",
             {"sid": school_id, "q": f"%{message}%"},
         )
@@ -1934,7 +1934,7 @@ class FlowEngine:
     async def _se_find_student(self, session, message, db, school_id) -> BotResponse:
         rows = await _q(
             db,
-            """SELECT s.id, s.first_name + ' ' + s.last_name AS name,
+            """SELECT s.id, s.first_name || ' ' || s.last_name AS name,
                  s.admission_number, c.name AS class_name,
                  COALESCE(u.phone, '') AS phone,
                  COALESCE(s.blood_group, '') AS blood_group,
@@ -1945,7 +1945,7 @@ class FlowEngine:
                LEFT JOIN users u ON s.user_id = u.id
                WHERE s.school_id = :sid AND s.is_active=true
                  AND (
-                   LOWER(s.first_name + ' ' + s.last_name) LIKE LOWER(:q LIMIT 5)
+                   LOWER(s.first_name || ' ' || s.last_name) LIKE LOWER(:q)
                    OR LOWER(s.admission_number) LIKE LOWER(:q)
                  )""",
             {"sid": school_id, "q": f"%{message}%"},
@@ -2251,7 +2251,7 @@ class FlowEngine:
 
         records = await _q(
             db,
-            """SELECT s.first_name + ' ' + s.last_name AS name,
+            """SELECT s.first_name || ' ' || s.last_name AS name,
                  s.admission_number, sa.status
                FROM student_attendance sa
                JOIN attendance_sessions asess ON sa.session_id = asess.id

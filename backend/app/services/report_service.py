@@ -67,7 +67,7 @@ class StudentListReport(BaseReport):
             p["status"] = 1 if f["status"] == "active" else 0
         where = " AND ".join(conditions)
         return await self._rows(
-            f"""SELECT s.admission_number, s.first_name + ' ' + s.last_name AS name,
+            f"""SELECT s.admission_number, s.first_name || ' ' || s.last_name AS name,
                        s.gender, s.date_of_birth, s.is_active,
                        c.name AS class_name, se.name AS section_name
                 FROM students s
@@ -85,7 +85,7 @@ class FeeDefaultersReport(BaseReport):
     async def generate(self) -> List[Dict[str, Any]]:
         p = {"school_id": self.school_id}
         return await self._rows(
-            """SELECT s.admission_number, s.first_name + ' ' + s.last_name AS name,
+            """SELECT s.admission_number, s.first_name || ' ' || s.last_name AS name,
                       c.name AS class_name,
                       SUM(fi.balance_amount) AS outstanding_amount
                FROM fee_invoices fi
@@ -115,7 +115,7 @@ class FeeCollectionReport(BaseReport):
         where = " AND ".join(conditions)
         return await self._rows(
             f"""SELECT fp.payment_date, fp.receipt_number,
-                       s.admission_number, s.first_name + ' ' + s.last_name AS name,
+                       s.admission_number, s.first_name || ' ' || s.last_name AS name,
                        fp.amount, fp.payment_method
                 FROM fee_payments fp
                 JOIN fee_invoices fi ON fp.invoice_id = fi.id
@@ -143,7 +143,7 @@ class StudentAttendanceReport(BaseReport):
             p["year"] = f["year"]
         where = " AND ".join(conditions)
         return await self._rows(
-            f"""SELECT s.admission_number, s.first_name + ' ' + s.last_name AS name,
+            f"""SELECT s.admission_number, s.first_name || ' ' || s.last_name AS name,
                        SUM(CASE WHEN sa.status = 'present' THEN 1 ELSE 0 END) AS present_days,
                        SUM(CASE WHEN sa.status = 'absent' THEN 1 ELSE 0 END) AS absent_days,
                        COUNT(*) AS total_days,
@@ -170,7 +170,7 @@ class StaffListReport(BaseReport):
             p["department_id"] = self.filters["department_id"]
         where = " AND ".join(conditions)
         return await self._rows(
-            f"""SELECT st.employee_id, st.first_name + ' ' + st.last_name AS name,
+            f"""SELECT st.employee_id, st.first_name || ' ' || st.last_name AS name,
                       d.name AS department, des.name AS designation,
                       st.date_of_joining, st.employment_type, st.is_active
                FROM staff st
@@ -196,7 +196,7 @@ class StaffAttendanceReport(BaseReport):
             p["year"] = f["year"]
         where = " AND ".join(conditions)
         return await self._rows(
-            f"""SELECT st.employee_id, st.first_name + ' ' + st.last_name AS name,
+            f"""SELECT st.employee_id, st.first_name || ' ' || st.last_name AS name,
                        SUM(CASE WHEN sa.status = 'present' THEN 1 ELSE 0 END) AS present_days,
                        SUM(CASE WHEN sa.status = 'absent' THEN 1 ELSE 0 END) AS absent_days,
                        SUM(CASE WHEN sa.status = 'half_day' THEN 1 ELSE 0 END) AS half_days,
@@ -228,7 +228,7 @@ class LowAttendanceReport(BaseReport):
             p["year"] = f["year"]
         where = " AND ".join(conditions)
         return await self._rows(
-            f"""SELECT s.admission_number, s.first_name + ' ' + s.last_name AS name,
+            f"""SELECT s.admission_number, s.first_name || ' ' || s.last_name AS name,
                        c.name AS class_name,
                        COUNT(*) AS total_days,
                        SUM(CASE WHEN sa.status = 'present' THEN 1 ELSE 0 END) AS present_days,

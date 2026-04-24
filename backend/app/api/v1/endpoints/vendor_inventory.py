@@ -485,7 +485,7 @@ async def list_sales(
     rows = await _q(
         db,
         f"""SELECT vs.*, v.name AS vendor_name,
-               COALESCE(s.first_name + ' ' + s.last_name, 'Walk-in') AS student_name
+               COALESCE(s.first_name || ' ' || s.last_name, 'Walk-in') AS student_name
              FROM vendor_sales vs
              JOIN vendors v ON v.id = vs.vendor_id
              LEFT JOIN students s ON s.id = vs.student_id
