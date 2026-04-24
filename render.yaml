@@ -2,8 +2,7 @@ services:
   - type: web
     name: sms-backend
     runtime: docker
-    dockerfilePath: ./backend/Dockerfile
-    dockerContext: ./backend
+    rootDir: backend
     plan: free
     region: singapore
     healthCheckPath: /health
