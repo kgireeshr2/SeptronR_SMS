@@ -30,11 +30,11 @@ async def admin_dashboard(
 
     total_students = await _scalar(
         db,
-        "SELECT COUNT(*) FROM students WHERE school_id = :school_id AND is_active = 1",
+        "SELECT COUNT(*) FROM students WHERE school_id = :school_id AND is_active=true",
         p,
     )
     total_staff = await _scalar(
-        db, "SELECT COUNT(*) FROM staff WHERE school_id = :school_id AND is_active = 1", p
+        db, "SELECT COUNT(*) FROM staff WHERE school_id = :school_id AND is_active=true", p
     )
     total_fee_collected_this_month = await _scalar(
         db,
@@ -89,7 +89,7 @@ async def admin_dashboard(
     gender_raw = await db.execute(
         text(
             """SELECT COALESCE(gender, 'other') AS gender, COUNT(*) AS cnt
-               FROM students WHERE school_id = :school_id AND is_active = 1
+               FROM students WHERE school_id = :school_id AND is_active=true
                GROUP BY gender"""
         ),
         p,
@@ -122,7 +122,7 @@ async def admin_dashboard(
             """SELECT title, event_type, start_datetime FROM calendar_events
                WHERE school_id = :school_id
                  AND start_datetime BETWEEN NOW() AND (NOW( + INTERVAL '7 days') LIMIT 5)
-                 AND is_active = 1
+                 AND is_active=true
                ORDER BY start_datetime"""
         ),
         p,
@@ -267,7 +267,7 @@ async def parent_dashboard(
                FROM students s
                LEFT JOIN classes c ON s.class_id = c.id
                LEFT JOIN sections sec ON s.section_id = sec.id
-               WHERE s.school_id = :school_id AND s.parent_id = :user_id AND s.is_active = 1"""
+               WHERE s.school_id = :school_id AND s.parent_id = :user_id AND s.is_active=true"""
         ),
         p,
     )
@@ -341,7 +341,7 @@ async def parent_dashboard(
     announcements_raw = await db.execute(
         text(
             """SELECT title, content, created_at FROM announcements
-               WHERE school_id = :school_id AND is_active = 1
+               WHERE school_id = :school_id AND is_active=true
                ORDER BY created_at DESC LIMIT 5"""
         ),
         {"school_id": school_id},

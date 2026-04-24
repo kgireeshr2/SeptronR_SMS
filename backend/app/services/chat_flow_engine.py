@@ -365,7 +365,7 @@ class FlowEngine:
     async def _sa_select_class(self, session, db, school_id) -> BotResponse:
         classes = await _q(
             db,
-            "SELECT id, name FROM classes WHERE school_id = :sid AND is_active = 1 "
+            "SELECT id, name FROM classes WHERE school_id = :sid AND is_active=true "
             "ORDER BY name",
             {"sid": school_id},
         )
@@ -389,7 +389,7 @@ class FlowEngine:
             # Try matching by class id (option button clicked) or by name
             classes = await _q(
                 db,
-                "SELECT id, name FROM classes WHERE school_id = :sid AND is_active = 1",
+                "SELECT id, name FROM classes WHERE school_id = :sid AND is_active=true",
                 {"sid": school_id},
             )
             # Match by id or label
@@ -413,7 +413,7 @@ class FlowEngine:
         # Load sections for the selected class
         sections = await _q(
             db,
-            "SELECT id, name FROM sections WHERE class_id = :cid AND is_active = 1 ORDER BY name",
+            "SELECT id, name FROM sections WHERE class_id = :cid AND is_active=true ORDER BY name",
             {"cid": ctx["class_id"]},
         )
         if not sections:
@@ -442,7 +442,7 @@ class FlowEngine:
         if "section_id" not in ctx:
             sections = await _q(
                 db,
-                "SELECT id, name FROM sections WHERE class_id = :cid AND is_active = 1",
+                "SELECT id, name FROM sections WHERE class_id = :cid AND is_active=true",
                 {"cid": ctx.get("class_id", "")},
             )
             matched = next(
@@ -489,7 +489,7 @@ class FlowEngine:
             "FROM students s "
             "JOIN student_enrollments se ON se.student_id = s.id "
             "   AND se.section_id = :sec_id AND se.school_id = :sid AND se.is_current = 1 "
-            "WHERE s.school_id = :sid AND s.is_active = 1 "
+            "WHERE s.school_id = :sid AND s.is_active=true "
             "ORDER BY se.roll_number, s.first_name",
             {"sec_id": ctx["section_id"], "sid": school_id},
         )
@@ -543,7 +543,7 @@ class FlowEngine:
             text(
                 "INSERT INTO attendance_sessions "
                 "(id, school_id, session_type, date, class_id, section_id, taken_by, is_finalized, created_at) "
-                "VALUES (:id, :sid, 'full_day', CAST(NOW() AS DATE), :cid, :sec_id, :taken_by, 0, NOW())"
+                "VALUES (:id, :sid, 'full_day', CAST(NOW() AS DATE), :cid, :sec_id, :taken_by, false, NOW())"
             ),
             {
                 "id": session_id,
@@ -621,7 +621,7 @@ class FlowEngine:
             db,
             "SELECT id, first_name, last_name, employee_id, "
             "COALESCE(CAST(department_id AS VARCHAR(36)), '') AS dept_id "
-            "FROM staff WHERE school_id = :sid AND is_active = 1 "
+            "FROM staff WHERE school_id = :sid AND is_active=true "
             "ORDER BY first_name",
             {"sid": school_id},
         )
@@ -890,7 +890,7 @@ class FlowEngine:
                  AND fi.status NOT IN ('paid','cancelled' LIMIT 5)
                LEFT JOIN student_enrollments se ON se.student_id = s.id AND se.is_current = 1
                LEFT JOIN classes c ON se.class_id = c.id
-               WHERE s.is_active = 1 {s_where}
+               WHERE s.is_active=true {s_where}
                  AND (
                    LOWER(s.first_name + ' ' + s.last_name) LIKE LOWER(:q)
                    OR LOWER(s.admission_number) LIKE LOWER(:q)
@@ -982,7 +982,7 @@ class FlowEngine:
         types = await _q(
             db,
             "SELECT id, name, max_days_per_year, is_paid FROM leave_types "
-            "WHERE school_id = :sid AND is_active = 1 ORDER BY name",
+            "WHERE school_id = :sid AND is_active=true ORDER BY name",
             {"sid": school_id},
         )
         if not types:
@@ -1011,7 +1011,7 @@ class FlowEngine:
             # Look up from message
             leave_types = await _q(
                 db,
-                "SELECT id, name FROM leave_types WHERE is_active = 1",
+                "SELECT id, name FROM leave_types WHERE is_active=true",
                 {},
             )
             matched = next((t for t in leave_types if str(t["id"]) == message or
@@ -1106,7 +1106,7 @@ class FlowEngine:
         # Find staff record for this user
         staff = await _q(
             db,
-            "SELECT id FROM staff WHERE user_id = :uid AND school_id = :sid AND is_active = 1",
+            "SELECT id FROM staff WHERE user_id = :uid AND school_id = :sid AND is_active=true",
             {"uid": str(user.id), "sid": school_id},
         )
         if not staff:
@@ -1382,7 +1382,7 @@ class FlowEngine:
                LEFT JOIN classes c ON se.class_id = c.id
                LEFT JOIN sections sec ON se.section_id = sec.id
                LEFT JOIN users u ON s.user_id = u.id
-               WHERE s.is_active = 1 {s_where}
+               WHERE s.is_active=true {s_where}
                  AND (
                    LOWER(s.first_name + ' ' + s.last_name) LIKE LOWER(:q LIMIT 5)
                    OR LOWER(s.admission_number) LIKE LOWER(:q)
@@ -1639,7 +1639,7 @@ class FlowEngine:
                FROM students s
                LEFT JOIN student_enrollments se ON se.student_id = s.id AND se.is_current = 1
                LEFT JOIN classes c ON se.class_id = c.id
-               WHERE s.school_id = :sid AND s.is_active = 1
+               WHERE s.school_id = :sid AND s.is_active=true
                  AND (LOWER(s.first_name + ' ' + s.last_name) LIKE LOWER(:q LIMIT 5)
                       OR LOWER(s.admission_number) LIKE LOWER(:q))""",
             {"sid": school_id, "q": f"%{message}%"},
@@ -1943,7 +1943,7 @@ class FlowEngine:
                LEFT JOIN student_enrollments se ON se.student_id = s.id AND se.is_current = 1
                LEFT JOIN classes c ON se.class_id = c.id
                LEFT JOIN users u ON s.user_id = u.id
-               WHERE s.school_id = :sid AND s.is_active = 1
+               WHERE s.school_id = :sid AND s.is_active=true
                  AND (
                    LOWER(s.first_name + ' ' + s.last_name) LIKE LOWER(:q LIMIT 5)
                    OR LOWER(s.admission_number) LIKE LOWER(:q)
@@ -2149,7 +2149,7 @@ class FlowEngine:
     async def _av_select_class(self, session, db, school_id) -> BotResponse:
         classes = await _q(
             db,
-            "SELECT id, name FROM classes WHERE school_id = :sid AND is_active = 1 ORDER BY name",
+            "SELECT id, name FROM classes WHERE school_id = :sid AND is_active=true ORDER BY name",
             {"sid": school_id},
         )
         if not classes:
@@ -2167,7 +2167,7 @@ class FlowEngine:
         ctx = session.context
         if "class_id" not in ctx:
             classes = await _q(db,
-                "SELECT id, name FROM classes WHERE school_id = :sid AND is_active = 1",
+                "SELECT id, name FROM classes WHERE school_id = :sid AND is_active=true",
                 {"sid": school_id})
             matched = next(
                 (c for c in classes if str(c["id"]) == message or c["name"].lower() == message.lower()),
@@ -2181,7 +2181,7 @@ class FlowEngine:
             ctx = session.context
 
         sections = await _q(db,
-            "SELECT id, name FROM sections WHERE class_id = :cid AND is_active = 1 ORDER BY name",
+            "SELECT id, name FROM sections WHERE class_id = :cid AND is_active=true ORDER BY name",
             {"cid": ctx["class_id"]})
         if not sections:
             return BotResponse(text=f"No sections for {ctx['class_name']}.", type="error")
@@ -2207,7 +2207,7 @@ class FlowEngine:
         ctx = session.context
         if "section_id" not in ctx:
             sections = await _q(db,
-                "SELECT id, name FROM sections WHERE class_id = :cid AND is_active = 1",
+                "SELECT id, name FROM sections WHERE class_id = :cid AND is_active=true",
                 {"cid": ctx.get("class_id", "")})
             matched = next(
                 (s for s in sections if str(s["id"]) == message or s["name"].lower() == message.lower()),

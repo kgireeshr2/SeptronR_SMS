@@ -138,11 +138,11 @@ async def list_vendors(
 ):
     """List all vendors belonging to the current school."""
     if current_user.is_super_admin:
-        rows = await _q(db, "SELECT * FROM vendors WHERE is_active = 1 ORDER BY name")
+        rows = await _q(db, "SELECT * FROM vendors WHERE is_active=true ORDER BY name")
     else:
         rows = await _q(
             db,
-            "SELECT * FROM vendors WHERE school_id = :sid AND is_active = 1 ORDER BY name",
+            "SELECT * FROM vendors WHERE school_id = :sid AND is_active=true ORDER BY name",
             {"sid": school_id},
         )
     return {"success": True, "data": rows}
@@ -162,7 +162,7 @@ async def create_vendor(
         text("""INSERT INTO vendors (id, school_id, name, contact_person, phone, email, address,
                 gst_number, bank_name, bank_account, bank_ifsc, is_active, created_at, updated_at)
                 VALUES (:id, :sid, :name, :cp, :phone, :email, :addr, :gst, :bank_name, :bank_acct,
-                        :bank_ifsc, 1, NOW(), NOW())"""),
+                        :bank_ifsc, true, NOW(), NOW())"""),
         {"id": vid, "sid": sid, "name": data.name, "cp": data.contact_person, "phone": data.phone,
          "email": data.email, "addr": data.address, "gst": data.gst_number,
          "bank_name": data.bank_name, "bank_acct": data.bank_account, "bank_ifsc": data.bank_ifsc},
@@ -229,7 +229,7 @@ async def create_product(
     await db.execute(
         text("""INSERT INTO vendor_products (id, vendor_id, name, sku, category, unit, description,
                 purchase_price, selling_price, is_active, created_at, updated_at)
-                VALUES (:id, :v, :name, :sku, :cat, :unit, :desc, :pp, :sp, 1, NOW(), NOW())"""),
+                VALUES (:id, :v, :name, :sku, :cat, :unit, :desc, :pp, :sp, true, NOW(), NOW())"""),
         {"id": pid, "v": vendor_id, "name": data.name, "sku": data.sku, "cat": data.category,
          "unit": data.unit, "desc": data.description,
          "pp": _to_paise(data.purchase_price), "sp": _to_paise(data.selling_price)},

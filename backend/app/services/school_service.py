@@ -287,8 +287,8 @@ async def seed_school_defaults(school_id: str, db: AsyncSession) -> None:
                 "INSERT INTO document_templates "
                 "(id, school_id, template_name, template_type, canvas_width_mm, canvas_height_mm, "
                 "template_html, layout_json, is_default, is_active, created_at, updated_at) "
-                "VALUES (NEWID(), :sid, :tname, :ttype, :w, :h, :html, NULL, :is_def, 1, "
-                "GETUTCDATE(), GETUTCDATE())"
+                "VALUES (gen_random_uuid(), :sid, :tname, :ttype, :w, :h, :html, NULL, :is_def, true, "
+                "NOW(), NOW())"
             ),
             {
                 "sid": school_id,
@@ -297,7 +297,7 @@ async def seed_school_defaults(school_id: str, db: AsyncSession) -> None:
                 "w": tpl["canvas_width_mm"],
                 "h": tpl["canvas_height_mm"],
                 "html": tpl["template_html"],
-                "is_def": 1 if tpl["is_default"] else 0,
+                "is_def": tpl["is_default"],
             },
         )
     await db.commit()
@@ -318,8 +318,8 @@ async def seed_school_defaults(school_id: str, db: AsyncSession) -> None:
                 "INSERT INTO notification_templates "
                 "(id, school_id, name, channels, event_trigger, subject, body_template, "
                 "is_active, is_default, created_at, updated_at) "
-                "VALUES (NEWID(), :sid, :name, :ch, :evt, :subj, :body, "
-                ":is_active, :is_def, GETUTCDATE(), GETUTCDATE())"
+                "VALUES (gen_random_uuid(), :sid, :name, :ch, :evt, :subj, :body, "
+                ":is_active, :is_def, NOW(), NOW())"
             ),
             {
                 "sid": school_id,
@@ -328,8 +328,8 @@ async def seed_school_defaults(school_id: str, db: AsyncSession) -> None:
                 "evt": ntpl["event_trigger"],
                 "subj": ntpl.get("subject"),
                 "body": ntpl["body_template"],
-                "is_active": 1 if ntpl["is_active"] else 0,
-                "is_def": 1 if ntpl["is_default"] else 0,
+                "is_active": ntpl["is_active"],
+                "is_def": ntpl["is_default"],
             },
         )
     await db.commit()

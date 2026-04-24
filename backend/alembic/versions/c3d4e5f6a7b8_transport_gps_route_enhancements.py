@@ -67,7 +67,7 @@ def upgrade() -> None:
         sa.Column('accuracy_meters', sa.Numeric(6, 2), nullable=True),
         sa.Column('recorded_at', sa.DateTime(timezone=True), nullable=False),
         sa.Column('source', sa.String(20), nullable=False, server_default='driver_app'),
-        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('GETUTCDATE()'), nullable=False),
+        sa.Column('created_at', sa.DateTime(timezone=True), server_default=sa.text('NOW()'), nullable=False),
     )
     op.create_index('ix_vehicle_gps_logs_vehicle_id', 'vehicle_gps_logs', ['vehicle_id'])
     op.create_index('ix_vehicle_gps_logs_recorded_at', 'vehicle_gps_logs', ['recorded_at'])

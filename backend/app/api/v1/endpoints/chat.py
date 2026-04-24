@@ -72,7 +72,7 @@ async def _scalar(db: AsyncSession, sql: str, params: dict) -> Any:
 
 async def tool_student_summary(db, school_id, class_name=None, section=None):
     p: dict = {"school_id": school_id}
-    where = "s.school_id = :school_id AND s.is_active = 1"
+    where = "s.school_id = :school_id AND s.is_active=true"
     if class_name:
         p["class_name"] = f"%{class_name}%"
         where += " AND LOWER(c.name) LIKE LOWER(:class_name)"
@@ -182,7 +182,7 @@ async def tool_fee_defaulters(db, school_id, min_amount=0, class_name=None):
 
 async def tool_staff_summary(db, school_id):
     p = {"school_id": school_id}
-    total = await _scalar(db, "SELECT COUNT(*) FROM staff WHERE school_id=:school_id AND is_active=1", p)
+    total = await _scalar(db, "SELECT COUNT(*) FROM staff WHERE school_id=:school_id AND is_active=true", p)
     on_leave = await _scalar(db, """
         SELECT COUNT(DISTINCT staff_id) FROM leave_requests
         WHERE school_id=:school_id AND status='approved'
@@ -191,7 +191,7 @@ async def tool_staff_summary(db, school_id):
     by_dept = await _q(db, """
         SELECT d.name as department, COUNT(s.id) as count
         FROM staff s LEFT JOIN departments d ON s.department_id=d.id
-        WHERE s.school_id=:school_id AND s.is_active=1
+        WHERE s.school_id=:school_id AND s.is_active=true
         GROUP BY d.name ORDER BY count DESC
     """, p)
     return {"total": int(total), "on_leave_today": int(on_leave),
@@ -204,8 +204,8 @@ async def tool_class_summary(db, school_id):
                COUNT(s.id) as students
         FROM classes c
         LEFT JOIN class_sections cs ON cs.class_id=c.id
-        LEFT JOIN students s ON s.section_id=cs.id AND s.is_active=1
-        WHERE c.school_id=:school_id AND c.is_active=1
+        LEFT JOIN students s ON s.section_id=cs.id AND s.is_active=true
+        WHERE c.school_id=:school_id AND c.is_active=true
         GROUP BY c.id, c.name ORDER BY c.name
     """, {"school_id": school_id})
     return {"classes": rows, "total_classes": len(rows),
@@ -214,15 +214,15 @@ async def tool_class_summary(db, school_id):
 
 async def tool_transport_summary(db, school_id):
     p = {"school_id": school_id}
-    routes = await _scalar(db, "SELECT COUNT(*) FROM routes WHERE school_id=:school_id AND is_active=1", p)
-    vehicles = await _scalar(db, "SELECT COUNT(*) FROM vehicles WHERE school_id=:school_id AND is_active=1", p)
-    assigned = await _scalar(db, "SELECT COUNT(*) FROM student_transport WHERE school_id=:school_id AND is_active=1", p)
+    routes = await _scalar(db, "SELECT COUNT(*) FROM routes WHERE school_id=:school_id AND is_active=true", p)
+    vehicles = await _scalar(db, "SELECT COUNT(*) FROM vehicles WHERE school_id=:school_id AND is_active=true", p)
+    assigned = await _scalar(db, "SELECT COUNT(*) FROM student_transport WHERE school_id=:school_id AND is_active=true", p)
     details = await _q(db, """
         SELECT r.name, COUNT(st.id) as students, v.registration_number as vehicle
         FROM routes r
-        LEFT JOIN student_transport st ON st.route_id=r.id AND st.is_active=1
+        LEFT JOIN student_transport st ON st.route_id=r.id AND st.is_active=true
         LEFT JOIN vehicles v ON r.vehicle_id=v.id
-        WHERE r.school_id=:school_id AND r.is_active=1
+        WHERE r.school_id=:school_id AND r.is_active=true
         GROUP BY r.id,r.name,v.registration_number ORDER BY students DESC
     """, p)
     return {"routes": int(routes), "vehicles": int(vehicles),

@@ -572,7 +572,7 @@ async def download_admit_cards_pdf(
             WHERE se.class_id = :class_id
               AND se.academic_year_id = :year_id
               AND s.school_id = :school_id
-              AND s.is_active = 1
+              AND s.is_active=true
             ORDER BY s.first_name
             """
         ),
