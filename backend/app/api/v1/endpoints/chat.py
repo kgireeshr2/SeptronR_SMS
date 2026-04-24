@@ -120,9 +120,10 @@ async def tool_attendance_today(db, school_id, class_name=None):
         JOIN students s ON sa.student_id=s.id
         JOIN class_sections cs ON s.section_id=cs.id
         JOIN classes c ON cs.class_id=c.id
-        WHERE sa.school_id=:school_id AND ats.date=CAST(NOW() AS DATE LIMIT 15)
+        WHERE sa.school_id=:school_id AND ats.date=CAST(NOW() AS DATE)
           AND sa.status='absent' {cf}
         ORDER BY c.name, s.first_name
+        LIMIT 15
     """, p)
     return {
         "date": str(date.today()), "present": present, "absent": absent,

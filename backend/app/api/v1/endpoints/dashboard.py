@@ -77,7 +77,7 @@ async def admin_dashboard(
                       COALESCE(SUM(amount), 0) AS amount
                FROM fee_payments
                WHERE school_id = :school_id
-                 AND payment_date >= (NOW( + INTERVAL '-6 months'))
+                 AND payment_date >= (NOW() - INTERVAL '6 months')
                GROUP BY DATE_TRUNC('month', payment_date)
                ORDER BY DATE_TRUNC('month', payment_date)"""
         ),
@@ -109,7 +109,7 @@ async def admin_dashboard(
             """SELECT c.name AS class_name, COUNT(se.student_id) AS cnt
                FROM student_enrollments se
                JOIN classes c ON se.class_id = c.id
-               WHERE se.school_id = :school_id AND se.is_current = 1
+               WHERE se.school_id = :school_id AND se.is_current = true
                GROUP BY c.name ORDER BY c.name"""
         ),
         p,
@@ -121,9 +121,10 @@ async def admin_dashboard(
         text(
             """SELECT title, event_type, start_datetime FROM calendar_events
                WHERE school_id = :school_id
-                 AND start_datetime BETWEEN NOW() AND (NOW( + INTERVAL '7 days') LIMIT 5)
+                 AND start_datetime BETWEEN NOW() AND (NOW() + INTERVAL '7 days')
                  AND is_active=true
-               ORDER BY start_datetime"""
+               ORDER BY start_datetime
+               LIMIT 5"""
         ),
         p,
     )
@@ -189,8 +190,9 @@ async def teacher_dashboard(
         text(
             """SELECT e.name, e.exam_date FROM exams e
                WHERE e.school_id = :school_id
-                 AND e.exam_date BETWEEN CAST(NOW() AS DATE) AND (NOW( + INTERVAL '14 days') LIMIT 5)
-               ORDER BY e.exam_date"""
+                 AND e.exam_date BETWEEN CAST(NOW() AS DATE) AND (NOW() + INTERVAL '14 days')
+               ORDER BY e.exam_date
+               LIMIT 5"""
         ),
         p,
     )
@@ -224,20 +226,22 @@ async def student_dashboard(
         text(
             """SELECT e.name, e.exam_date FROM exams e
                WHERE e.school_id = :school_id
-                 AND e.exam_date >= CAST(NOW() AS DATE LIMIT 5)
-               ORDER BY e.exam_date"""
+                 AND e.exam_date >= CAST(NOW() AS DATE)
+               ORDER BY e.exam_date
+               LIMIT 5"""
         ),
         p,
     )
-    upcoming_exams = [{"name": r[0], "exam_date": str(r[1])} for r in upcoming_exams_raw.fetchall()]
+    upcoming_exams = [{'name': r[0], 'exam_date': str(r[1])} for r in upcoming_exams_raw.fetchall()]
 
     homework_due_raw = await db.execute(
         text(
             """SELECT h.title, h.due_date FROM homework h
                JOIN students s ON s.school_id = h.school_id
                WHERE h.school_id = :school_id AND s.user_id = :user_id
-                 AND h.due_date >= CAST(NOW() AS DATE LIMIT 5)
-               ORDER BY h.due_date"""
+                 AND h.due_date >= CAST(NOW() AS DATE)
+               ORDER BY h.due_date
+               LIMIT 5"""
         ),
         p,
     )
@@ -318,20 +322,22 @@ async def parent_dashboard(
         text(
             """SELECT e.name, e.exam_date FROM exams e
                WHERE e.school_id = :school_id
-                 AND e.exam_date >= CAST(NOW() AS DATE LIMIT 5)
-               ORDER BY e.exam_date"""
+                 AND e.exam_date >= CAST(NOW() AS DATE)
+               ORDER BY e.exam_date
+               LIMIT 5"""
         ),
         {"school_id": school_id},
     )
-    upcoming_exams = [{"name": r[0], "exam_date": str(r[1])} for r in upcoming_exams_raw.fetchall()]
+    upcoming_exams = [{'name': r[0], 'exam_date': str(r[1])} for r in upcoming_exams_raw.fetchall()]
 
     # Homework due
     homework_due_raw = await db.execute(
         text(
             """SELECT h.title, h.due_date, h.subject_id FROM homework h
                WHERE h.school_id = :school_id
-                 AND h.due_date >= CAST(NOW() AS DATE LIMIT 5)
-               ORDER BY h.due_date"""
+                 AND h.due_date >= CAST(NOW() AS DATE)
+               ORDER BY h.due_date
+               LIMIT 5"""
         ),
         {"school_id": school_id},
     )

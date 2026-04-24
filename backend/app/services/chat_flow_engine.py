@@ -488,7 +488,7 @@ class FlowEngine:
             "COALESCE(se.roll_number, '') AS roll_number "
             "FROM students s "
             "JOIN student_enrollments se ON se.student_id = s.id "
-            "   AND se.section_id = :sec_id AND se.school_id = :sid AND se.is_current = 1 "
+            "   AND se.section_id = :sec_id AND se.school_id = :sid AND se.is_current = true "
             "WHERE s.school_id = :sid AND s.is_active=true "
             "ORDER BY se.roll_number, s.first_name",
             {"sec_id": ctx["section_id"], "sid": school_id},
