@@ -30,7 +30,6 @@ async def lifespan(app: FastAPI):
     """Startup and shutdown lifecycle."""
     import os
     from sqlalchemy import text
-    import redis.asyncio as aioredis
     from app.db.session import async_session_factory
 
     logger.info(f"Starting {settings.APP_NAME} v1.0.0 [{settings.APP_ENV}]")
@@ -46,6 +45,7 @@ async def lifespan(app: FastAPI):
     # Verify Redis connection (optional)
     if settings.REDIS_ENABLED:
         try:
+            import redis.asyncio as aioredis
             r = aioredis.from_url(settings.REDIS_URL)
             await r.ping()
             await r.aclose()
