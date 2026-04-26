@@ -37,10 +37,14 @@ async def list_available_reports(
         "low_attendance": "attendance",
         "fee_defaulters": "finance",
         "fee_collection": "finance",
+        "class_fee_summary": "finance",
         "income_expense": "finance",
         "monthly_pl": "finance",
         "staff_list": "staff",
         "staff_attendance": "staff",
+        "leave_report": "staff",
+        "exam_results": "other",
+        "birthday_report": "student",
     }
     for report_id in REPORT_REGISTRY:
         group = mappings.get(report_id, "other")
@@ -79,6 +83,7 @@ async def get_report(
     date_to: Optional[str] = Query(None),
     threshold_pct: Optional[int] = Query(None),
     department_id: Optional[str] = Query(None),
+    exam_type_id: Optional[str] = Query(None),
 ):
     filters = {k: v for k, v in {
         "class_id": class_id,
@@ -91,6 +96,7 @@ async def get_report(
         "date_to": date_to,
         "threshold_pct": threshold_pct,
         "department_id": department_id,
+        "exam_type_id": exam_type_id,
     }.items() if v is not None}
 
     if report_id not in REPORT_REGISTRY:

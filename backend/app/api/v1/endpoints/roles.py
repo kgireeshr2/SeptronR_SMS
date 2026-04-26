@@ -193,3 +193,19 @@ async def list_all_permissions(
     result = [PermissionResponse.model_validate(p).model_dump() for p in perms]
     return ok(result, f"{len(result)} permissions found")
 
+
+@permissions_router.post("", response_model=dict, status_code=status.HTTP_201_CREATED)
+async def create_permission(
+    payload: dict,
+    db: AsyncSession = Depends(get_db),
+    _=Depends(permission_required("roles", "edit")),
+):
+    """Create a new permission (idempotent — returns existing if already present)."""
+    repo = RoleRepository(db)
+    perm = await repo.create_permission(
+        module=payload["module"],
+        action=payload["action"],
+        description=payload.get("description"),
+    )
+    return ok(PermissionResponse.model_validate(perm).model_dump(), "Permission created")
+

@@ -49,6 +49,21 @@ class Student(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     aadhaar_number: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
     pan_number: Mapped[Optional[str]] = mapped_column(String(15), nullable=True)
     apaar_number: Mapped[Optional[str]] = mapped_column(String(30), nullable=True)  # APAAR / PEN
+    # Contact & Address
+    phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    email: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    address: Mapped[Optional[str]] = mapped_column(Text, nullable=True)
+    city: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    state: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    pincode: Mapped[Optional[str]] = mapped_column(String(10), nullable=True)
+    # Additional Info
+    caste: Mapped[Optional[str]] = mapped_column(String(100), nullable=True)
+    mother_tongue: Mapped[Optional[str]] = mapped_column(String(60), nullable=True)
+    previous_school: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    # Emergency Contact
+    emergency_contact_name: Mapped[Optional[str]] = mapped_column(String(200), nullable=True)
+    emergency_contact_phone: Mapped[Optional[str]] = mapped_column(String(20), nullable=True)
+    emergency_contact_relation: Mapped[Optional[str]] = mapped_column(String(50), nullable=True)
     deleted_at: Mapped[Optional[datetime]] = mapped_column(nullable=True)
     deleted_by: Mapped[Optional[str]] = mapped_column(
         UUID(as_uuid=True), ForeignKey("users.id"), nullable=True

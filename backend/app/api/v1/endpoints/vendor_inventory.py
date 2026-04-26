@@ -777,3 +777,6 @@ async def _upsert_stock(db: AsyncSession, vendor_id: str, school_id: str, produc
                  "VALUES (:id, :v, :s, :p, :qty, 0, NOW(), NOW())"),
             {"id": _new_id(), "v": vendor_id, "s": school_id, "p": product_id, "qty": qty},
         )
+
+
+

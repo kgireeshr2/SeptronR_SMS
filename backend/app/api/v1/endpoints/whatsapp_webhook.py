@@ -31,6 +31,7 @@ from typing import Any, Dict, List, Optional
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Request, status
+from fastapi.responses import PlainTextResponse
 from sqlalchemy import select, text
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -39,6 +40,7 @@ from app.db.session import get_db
 from app.models.auth import User
 from app.models.chat_session import ConversationSession
 from app.services.chat_flow_engine import BotResponse, FlowEngine
+from app.core.config import settings
 from pydantic import BaseModel
 
 logger = logging.getLogger(__name__)
@@ -46,9 +48,9 @@ logger = logging.getLogger(__name__)
 whatsapp_router = APIRouter(prefix="/chat/whatsapp", tags=["WhatsApp"])
 
 # ── Config ────────────────────────────────────────────────────────────────────
-WA_TOKEN = os.getenv("META_WHATSAPP_TOKEN", os.getenv("WHATSAPP_TOKEN", ""))
-WA_PHONE_ID = os.getenv("META_PHONE_NUMBER_ID", os.getenv("WHATSAPP_PHONE_NUMBER_ID", ""))
-WA_VERIFY_TOKEN = os.getenv("META_WHATSAPP_VERIFY_TOKEN", os.getenv("WHATSAPP_VERIFY_TOKEN", "sms_whatsapp_verify"))
+WA_TOKEN = settings.META_WHATSAPP_TOKEN or os.getenv("WHATSAPP_TOKEN", "")
+WA_PHONE_ID = settings.META_PHONE_NUMBER_ID or os.getenv("WHATSAPP_PHONE_NUMBER_ID", "")
+WA_VERIFY_TOKEN = settings.META_WHATSAPP_VERIFY_TOKEN
 WA_API_URL = "https://graph.facebook.com/v18.0/{phone_id}/messages"
 
 _engine = FlowEngine()
@@ -262,17 +264,24 @@ def _serialize_bot_response(to: str, resp: BotResponse) -> List[Dict]:
 
 # ─── Webhook Endpoints ────────────────────────────────────────────────────────
 
-@whatsapp_router.get("/webhook")
+@whatsapp_router.get("/webhook", response_class=PlainTextResponse)
 async def wa_verify(
     hub_mode: str = Query(None, alias="hub.mode"),
     hub_challenge: str = Query(None, alias="hub.challenge"),
     hub_verify_token: str = Query(None, alias="hub.verify_token"),
 ):
     """Meta webhook verification endpoint (GET). Called once during setup."""
+    logger.info(
+        "WA verify attempt — mode=%s token_match=%s challenge=%s",
+        hub_mode,
+        hub_verify_token == WA_VERIFY_TOKEN,
+        hub_challenge,
+    )
     if hub_mode == "subscribe" and hub_verify_token == WA_VERIFY_TOKEN:
         logger.info("WhatsApp webhook verified successfully.")
-        return int(hub_challenge) if hub_challenge else "OK"
-    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Verification failed")
+        # Meta requires the challenge returned as plain text, not JSON
+        return PlainTextResponse(content=str(hub_challenge or "OK"), status_code=200)
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Verification failed — token mismatch")
 
 
 @whatsapp_router.post("/webhook")
@@ -467,3 +476,95 @@ async def wa_simulate(
         session_ended=response.session_ended,
         wa_payloads=wa_payloads,
     )
+
+
+# ─── Config Status ───────────────────────────────────────────────────────────
+
+@whatsapp_router.get("/config-status", summary="Check WhatsApp API credential status")
+async def wa_config_status(
+    current_user: User = Depends(get_current_user),
+):
+    """Returns whether Meta WhatsApp credentials are configured in the environment."""
+    api_base = settings.BACKEND_URL.rstrip("/")
+    return {
+        "token_configured": bool(WA_TOKEN),
+        "phone_id_configured": bool(WA_PHONE_ID),
+        "verify_token": WA_VERIFY_TOKEN,
+        "webhook_url": f"{api_base}/api/v1/chat/whatsapp/webhook",
+        "api_version": "v18.0",
+        "ready_for_real_wa": bool(WA_TOKEN and WA_PHONE_ID),
+    }
+
+
+@whatsapp_router.get("/verify-test", summary="Simulate Meta webhook verification locally (no Meta needed)")
+async def wa_verify_test(
+    current_user: User = Depends(get_current_user),
+):
+    """Simulates what Meta sends during webhook setup — returns success if verify token is correct."""
+    import httpx
+    api_base = settings.BACKEND_URL.rstrip("/")
+    test_challenge = "1234567890"
+    url = f"{api_base}/api/v1/chat/whatsapp/webhook"
+    params = {
+        "hub.mode": "subscribe",
+        "hub.challenge": test_challenge,
+        "hub.verify_token": WA_VERIFY_TOKEN,
+    }
+    try:
+        async with httpx.AsyncClient(timeout=5) as client:
+            resp = await client.get(url, params=params)
+        if resp.status_code == 200 and resp.text.strip() == test_challenge:
+            return {"status": "✅ Webhook verification works!", "challenge_echoed": resp.text.strip(), "verify_token_used": WA_VERIFY_TOKEN}
+        return {"status": "❌ Verification failed", "http_status": resp.status_code, "body": resp.text[:200]}
+    except Exception as exc:
+        return {"status": "❌ Could not reach webhook URL", "error": str(exc), "url": url}
+
+
+# ─── Send Real Test Message ───────────────────────────────────────────────────
+
+class WaSendTestRequest(BaseModel):
+    phone: str                   # full international format e.g. 919876543210
+    message: str = "Hello from School SMS! This is a test message."
+
+
+@whatsapp_router.post("/send-test-message", summary="Send a real WhatsApp text message (requires Meta credentials)")
+async def wa_send_test_message(
+    body: WaSendTestRequest,
+    current_user: User = Depends(get_current_user),
+):
+    """Send a plain text WhatsApp message to any phone number.
+
+    Requires META_WHATSAPP_TOKEN and META_PHONE_NUMBER_ID to be set in .env.
+    Phone should be in full international format without '+' (e.g. 919876543210).
+    """
+    if not WA_TOKEN or not WA_PHONE_ID:
+        raise HTTPException(
+            status_code=424,
+            detail="WhatsApp credentials not configured. Set META_WHATSAPP_TOKEN and META_PHONE_NUMBER_ID in your .env file.",
+        )
+
+    phone = re.sub(r"\D", "", body.phone)
+    if not phone:
+        raise HTTPException(status_code=400, detail="Invalid phone number")
+
+    payload = _wa_text(phone, body.message)
+
+    url = WA_API_URL.format(phone_id=WA_PHONE_ID)
+    headers = {
+        "Authorization": f"Bearer {WA_TOKEN}",
+        "Content-Type": "application/json",
+    }
+    try:
+        async with httpx.AsyncClient(timeout=15) as client:
+            resp = await client.post(url, headers=headers, json=payload)
+            if resp.status_code >= 400:
+                raise HTTPException(
+                    status_code=resp.status_code,
+                    detail=f"Meta API error: {resp.text[:400]}",
+                )
+            return {"status": "sent", "to": phone, "meta_response": resp.json()}
+    except HTTPException:
+        raise
+    except Exception as exc:
+        raise HTTPException(status_code=500, detail=str(exc))
+

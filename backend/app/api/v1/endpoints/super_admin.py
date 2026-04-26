@@ -164,3 +164,111 @@ async def end_impersonation(
         raise HTTPException(404, "Impersonation log not found")
     return result
 
+
+# ---- Feature Flags (global, not per-school) ----
+
+@superadmin_router.get("/feature-flags")
+async def list_all_feature_flags(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    """List all feature flags across all schools."""
+    from sqlalchemy import select
+    from app.models.super_admin import SchoolFeatureFlag
+    r = await db.execute(select(SchoolFeatureFlag).order_by(SchoolFeatureFlag.school_id))
+    flags = r.scalars().all()
+    return [{"id": str(f.id), "school_id": str(f.school_id), "flag_key": f.feature_key, "is_enabled": f.is_enabled} for f in flags]
+
+
+@superadmin_router.post("/feature-flags", status_code=201)
+async def create_feature_flag(
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    from app.models.super_admin import SchoolFeatureFlag
+    flag = SchoolFeatureFlag(
+        school_id=data.get("school_id"),
+        feature_key=data.get("flag_key", data.get("feature_key", "")),
+        is_enabled=data.get("is_enabled", True),
+    )
+    db.add(flag)
+    await db.commit()
+    await db.refresh(flag)
+    return {"id": str(flag.id), "school_id": str(flag.school_id), "flag_key": flag.feature_key, "is_enabled": flag.is_enabled}
+
+
+@superadmin_router.patch("/feature-flags/{flag_id}")
+async def update_feature_flag(
+    flag_id: UUID,
+    data: dict,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    from sqlalchemy import select
+    from app.models.super_admin import SchoolFeatureFlag
+    r = await db.execute(select(SchoolFeatureFlag).where(SchoolFeatureFlag.id == flag_id))
+    flag = r.scalar_one_or_none()
+    if not flag:
+        raise HTTPException(404, "Feature flag not found")
+    if "is_enabled" in data:
+        flag.is_enabled = data["is_enabled"]
+    await db.commit()
+    return {"id": str(flag.id), "school_id": str(flag.school_id), "flag_key": flag.feature_key, "is_enabled": flag.is_enabled}
+
+
+# ---- School Users (for impersonation) ----
+
+@superadmin_router.get("/schools/{school_id}/users")
+async def list_school_users(
+    school_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    """List users belonging to a school (for impersonation)."""
+    from sqlalchemy import text
+    rows = await db.execute(
+        text("SELECT id, email, first_name, last_name FROM users WHERE school_id = :sid AND is_active = true ORDER BY email LIMIT 100"),
+        {"sid": str(school_id)},
+    )
+    return [{"id": str(r["id"]), "email": r["email"], "name": f"{r['first_name'] or ''} {r['last_name'] or ''}".strip()} for r in rows.mappings().all()]
+
+
+# ---- Impersonation Log List ----
+
+@superadmin_router.get("/impersonate")
+async def list_impersonation_logs(
+    db: AsyncSession = Depends(get_db),
+    _: User = Depends(require_super_admin),
+):
+    from sqlalchemy import select
+    from app.models.super_admin import ImpersonationLog
+    r = await db.execute(select(ImpersonationLog).order_by(ImpersonationLog.started_at.desc()).limit(100))
+    logs = r.scalars().all()
+    return [{"id": str(l.id), "super_admin_id": str(l.super_admin_id), "school_id": str(l.impersonated_school_id), "user_id": str(l.impersonated_user_id), "started_at": l.started_at.isoformat(), "ended_at": l.ended_at.isoformat() if l.ended_at else None} for l in logs]
+
+
+# ---- Direct School Impersonation (returns token) ----
+
+@superadmin_router.post("/impersonate/{school_id}")
+async def impersonate_school(
+    school_id: UUID,
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(require_super_admin),
+):
+    """Quick impersonation: create a token scoped to a school admin."""
+    from sqlalchemy import text
+    from app.core.security import create_access_token
+    # Get the admin user of the target school
+    row = await db.execute(
+        text("SELECT id FROM users WHERE school_id = :sid AND is_active = true ORDER BY created_at LIMIT 1"),
+        {"sid": str(school_id)},
+    )
+    admin_row = row.mappings().first()
+    if not admin_row:
+        raise HTTPException(404, "No active users found for this school")
+    token, _ = create_access_token(subject=str(admin_row["id"]), school_id=str(school_id))
+    # Log it
+    log = await SuperAdminRepository(db).create_impersonation_log(current_user.id, school_id, admin_row["id"])
+    return {"access_token": token, "log_id": str(log.id), "school_id": str(school_id)}
+

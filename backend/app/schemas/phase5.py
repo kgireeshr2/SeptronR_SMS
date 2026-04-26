@@ -111,6 +111,21 @@ class StudentBase(BaseModel):
     aadhaar_number: Optional[str] = Field(None, max_length=20)
     pan_number: Optional[str] = Field(None, max_length=15)
     apaar_number: Optional[str] = Field(None, max_length=30)
+    # Contact & Address
+    phone: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=200)
+    address: Optional[str] = None
+    city: Optional[str] = Field(None, max_length=100)
+    state: Optional[str] = Field(None, max_length=60)
+    pincode: Optional[str] = Field(None, max_length=10)
+    # Additional Info
+    caste: Optional[str] = Field(None, max_length=100)
+    mother_tongue: Optional[str] = Field(None, max_length=60)
+    previous_school: Optional[str] = Field(None, max_length=200)
+    # Emergency Contact
+    emergency_contact_name: Optional[str] = Field(None, max_length=200)
+    emergency_contact_phone: Optional[str] = Field(None, max_length=20)
+    emergency_contact_relation: Optional[str] = Field(None, max_length=50)
 
 
 class StudentCreate(StudentBase):
@@ -130,10 +145,26 @@ class StudentUpdate(BaseModel):
     nationality: Optional[str] = Field(None, max_length=60)
     photo_url: Optional[str] = None
     admission_date: Optional[date] = None
+    admission_number: Optional[str] = Field(None, max_length=30)
     is_active: Optional[bool] = None
     aadhaar_number: Optional[str] = Field(None, max_length=20)
     pan_number: Optional[str] = Field(None, max_length=15)
     apaar_number: Optional[str] = Field(None, max_length=30)
+    # Contact & Address
+    phone: Optional[str] = Field(None, max_length=20)
+    email: Optional[str] = Field(None, max_length=200)
+    address: Optional[str] = None
+    city: Optional[str] = Field(None, max_length=100)
+    state: Optional[str] = Field(None, max_length=60)
+    pincode: Optional[str] = Field(None, max_length=10)
+    # Additional Info
+    caste: Optional[str] = Field(None, max_length=100)
+    mother_tongue: Optional[str] = Field(None, max_length=60)
+    previous_school: Optional[str] = Field(None, max_length=200)
+    # Emergency Contact
+    emergency_contact_name: Optional[str] = Field(None, max_length=200)
+    emergency_contact_phone: Optional[str] = Field(None, max_length=20)
+    emergency_contact_relation: Optional[str] = Field(None, max_length=50)
 
 
 class StudentResponse(StudentBase):

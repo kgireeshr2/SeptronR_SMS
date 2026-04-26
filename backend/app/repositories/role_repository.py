@@ -98,6 +98,20 @@ class RoleRepository:
         )
         return list(result.scalars().all())
 
+    async def create_permission(self, module: str, action: str, description: str | None = None) -> Permission:
+        # Return existing if already present
+        existing = await self.db.execute(
+            select(Permission).where(Permission.module == module, Permission.action == action)
+        )
+        perm = existing.scalar_one_or_none()
+        if perm:
+            return perm
+        perm = Permission(module=module, action=action, description=description)
+        self.db.add(perm)
+        await self.db.commit()
+        await self.db.refresh(perm)
+        return perm
+
     async def get_permission_by_id(self, permission_id: str) -> Optional[Permission]:
         result = await self.db.execute(select(Permission).where(Permission.id == permission_id))
         return result.scalar_one_or_none()

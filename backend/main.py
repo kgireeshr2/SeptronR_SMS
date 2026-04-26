@@ -13,7 +13,7 @@ from fastapi.responses import JSONResponse
 from sqlalchemy.exc import IntegrityError
 
 from app.core.config import settings
-from app.core.middleware import RequestLoggerMiddleware, SchoolContextMiddleware
+from app.core.middleware import RequestLoggerMiddleware, SchoolContextMiddleware, AuditMiddleware
 from app.db.session import engine
 from app.api.v1.router import api_router
 from app.utils.response import error
@@ -127,9 +127,16 @@ app.add_middleware(
 )
 app.add_middleware(RequestLoggerMiddleware)
 app.add_middleware(SchoolContextMiddleware)
+app.add_middleware(AuditMiddleware)
 
 # ── API Routes ────────────────────────────────────────────────────────────────
 app.include_router(api_router, prefix="/api/v1")
+
+# ── Static Files (uploads) ────────────────────────────────────────────────────
+from starlette.staticfiles import StaticFiles as _SF
+import os as _os
+_os.makedirs(settings.UPLOAD_DIR, exist_ok=True)
+app.mount("/uploads", _SF(directory=settings.UPLOAD_DIR), name="uploads")
 
 
 # ── Health Check ──────────────────────────────────────────────────────────────

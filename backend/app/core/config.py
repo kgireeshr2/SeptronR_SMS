@@ -57,6 +57,10 @@ class Settings(BaseSettings):
 
     META_WHATSAPP_TOKEN: str = ""
     META_PHONE_NUMBER_ID: str = ""
+    META_WHATSAPP_VERIFY_TOKEN: str = "sms_whatsapp_verify"
+
+    FRONTEND_URL: str = "http://localhost:5173"
+    BACKEND_URL: str = "http://localhost:8000"  # Public URL of this API server
 
     SMTP_HOST: str = "smtp.gmail.com"
     SMTP_PORT: int = 587
@@ -69,8 +73,6 @@ class Settings(BaseSettings):
 
     FCM_SERVER_KEY: str = ""
     FIREBASE_PROJECT_ID: str = ""
-
-    FRONTEND_URL: str = "http://localhost:5173"
 
     # Installation secret (set this to enable POST /api/v1/install)
     INSTALL_SECRET_KEY: str = ""

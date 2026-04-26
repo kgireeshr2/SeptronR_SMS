@@ -105,6 +105,28 @@ async def mark_read(
     return {"marked": count}
 
 
+@notifications_router.post("/mark-all-read")
+async def mark_all_read(
+    school_id: str = Depends(get_school_id),
+    current_user=Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Mark all notifications as read for the current user."""
+    from sqlalchemy import update as sa_update
+    from app.models.communications import Notification
+    result = await db.execute(
+        sa_update(Notification)
+        .where(
+            Notification.school_id == school_id,
+            Notification.user_id == str(current_user.id),
+            Notification.is_read == False,
+        )
+        .values(is_read=True)
+    )
+    await db.commit()
+    return {"marked": result.rowcount}
+
+
 @notifications_router.post("", response_model=NotificationResponse, status_code=status.HTTP_201_CREATED)
 async def create_notification(
     data: NotificationCreate,

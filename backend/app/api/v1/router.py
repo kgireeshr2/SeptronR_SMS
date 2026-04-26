@@ -179,6 +179,10 @@ api_router.include_router(credentials_router)
 from app.api.v1.endpoints.vendor_inventory import router as vendor_inventory_router
 api_router.include_router(vendor_inventory_router)
 
+# Personal Expenses (student-level, independent from school fees)
+from app.api.v1.endpoints.personal_expenses import router as personal_expenses_router
+api_router.include_router(personal_expenses_router)
+
 # Installation (one-time setup)
 from app.api.v1.endpoints.install import router as install_router
 api_router.include_router(install_router)

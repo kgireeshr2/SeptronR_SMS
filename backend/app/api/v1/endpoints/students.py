@@ -2,7 +2,7 @@ from typing import List, Optional
 from uuid import UUID
 import io
 
-from fastapi import APIRouter, Depends, File, HTTPException, Query, UploadFile, status
+from fastapi import APIRouter, Depends, File, Form, HTTPException, Query, UploadFile, status
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -22,6 +22,7 @@ from app.schemas.phase5 import (
     StudentEnrollmentResponse,
     StudentParentCreate,
     StudentParentResponse,
+    StudentParentUpdate,
     StudentPromotionResponse,
     StudentResponse,
     StudentStats,
@@ -183,6 +184,32 @@ async def delete_parent(
     return {"message": "Parent deleted successfully"}
 
 
+@router.put("/parents/{parent_id}", response_model=StudentParentResponse)
+async def update_parent(
+    parent_id: UUID,
+    data: StudentParentUpdate,
+    school_id: UUID = Depends(get_school_id),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Update a parent's details."""
+    from sqlalchemy import select
+    from app.models.students import StudentParent as StudentParentModel
+    result = await db.execute(
+        select(StudentParentModel)
+        .where(StudentParentModel.id == parent_id)
+        .where(StudentParentModel.school_id == school_id)
+    )
+    parent = result.scalar_one_or_none()
+    if not parent:
+        raise HTTPException(status_code=404, detail="Parent not found")
+    for field, value in data.model_dump(exclude_none=True).items():
+        setattr(parent, field, value)
+    await db.commit()
+    await db.refresh(parent)
+    return parent
+
+
 # ========== Enrollment Management ==========
 @router.post("/{student_id}/enrollments", response_model=StudentEnrollmentResponse)
 async def add_enrollment(
@@ -206,6 +233,38 @@ async def add_enrollment(
 
 
 # ========== Document Management ==========
+@router.post("/{student_id}/documents/upload", response_model=StudentDocumentResponse, status_code=status.HTTP_201_CREATED)
+async def upload_document(
+    student_id: UUID,
+    doc_type: str = Form(...),
+    file: UploadFile = File(...),
+    school_id: UUID = Depends(get_school_id),
+    db: AsyncSession = Depends(get_db),
+    current_user: User = Depends(get_current_user),
+):
+    """Upload a document file for a student (multipart form: doc_type + file)."""
+    import os, aiofiles
+    from app.core.config import settings
+    from app.schemas.phase5 import StudentDocumentCreate
+    repository = StudentRepository(db)
+    student = await repository.get_by_id(student_id, school_id)
+    if not student:
+        raise HTTPException(status_code=404, detail="Student not found")
+    # Save file
+    dest_dir = os.path.join(settings.UPLOAD_DIR, "students", str(student_id), "docs")
+    os.makedirs(dest_dir, exist_ok=True)
+    safe_name = os.path.basename(file.filename or "document")
+    dest_path = os.path.join(dest_dir, safe_name)
+    content = await file.read()
+    with open(dest_path, "wb") as f:
+        f.write(content)
+    file_url = f"/uploads/students/{student_id}/docs/{safe_name}"
+    doc = await repository.add_document(student_id, school_id, StudentDocumentCreate(doc_type=doc_type, file_url=file_url))
+    await db.commit()
+    await db.refresh(doc)
+    return doc
+
+
 @router.post("/{student_id}/documents", response_model=StudentDocumentResponse)
 async def add_document(
     student_id: UUID,

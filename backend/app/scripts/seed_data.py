@@ -129,6 +129,10 @@ ALL_PERMISSIONS = [
     ("inventory", "edit", "Edit inventory"),
     ("inventory", "delete", "Delete inventory items"),
     
+    # Vendor Inventory
+    ("vendor_inventory", "view", "View vendor inventory"),
+    ("vendor_inventory", "manage", "Manage vendor inventory"),
+    
     # Accounting
     ("accounting", "view", "View accounting records"),
     ("accounting", "create", "Create transactions"),
@@ -205,6 +209,7 @@ SYSTEM_ROLES = {
             "library:view",
             "transport:view",
             "inventory:view",
+            "vendor_inventory:view", "vendor_inventory:manage",
             "accounting:view",
             "communication:view", "communication:create",
             "homework:view",
@@ -305,6 +310,7 @@ SYSTEM_ROLES = {
         "description": "Manage school inventory and supplies",
         "permissions": [
             "inventory:view", "inventory:create", "inventory:edit", "inventory:delete",
+            "vendor_inventory:view", "vendor_inventory:manage",
             "dashboard:view",
         ],
     },

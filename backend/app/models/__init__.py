@@ -131,3 +131,4 @@ from app.models.vendor_inventory import (  # noqa: F401
     VendorSaleItem,
     VendorPayment,
 )
+from app.models.personal_expenses import PersonalExpenseCategory, PersonalExpense  # noqa: F401
