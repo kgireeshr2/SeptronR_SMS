@@ -6,11 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libffi-dev \
     libssl-dev \
     gcc \
-    libpango-1.0-0 \
-    libpangoft2-1.0-0 \
-    libgdk-pixbuf2.0-0 \
-    libcairo2 \
-    libfontconfig1 \
+    weasyprint \
     && rm -rf /var/lib/apt/lists/*
 
 COPY requirements.txt .
