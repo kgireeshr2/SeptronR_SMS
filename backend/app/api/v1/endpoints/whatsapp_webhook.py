@@ -117,7 +117,12 @@ async def _send_wa_message(to: str, payload: Dict[str, Any]) -> None:
         async with httpx.AsyncClient(timeout=10) as client:
             resp = await client.post(url, headers=headers, json=payload)
             if resp.status_code >= 400:
-                logger.error("WA send error %s: %s", resp.status_code, resp.text[:300])
+                logger.error(
+                    "WA send FAILED — status=%s phone_id=%s token_prefix=%s error=%s",
+                    resp.status_code, WA_PHONE_ID, WA_TOKEN[:20] if WA_TOKEN else "EMPTY", resp.text[:500]
+                )
+            else:
+                logger.info("WA message sent OK to %s — msg_id=%s", to, resp.json().get("messages", [{}])[0].get("id", "?"))
     except Exception as exc:
         logger.exception("Failed to send WhatsApp message: %s", exc)
 
@@ -567,4 +572,16 @@ async def wa_send_test_message(
         raise
     except Exception as exc:
         raise HTTPException(status_code=500, detail=str(exc))
+
+
+@whatsapp_router.get("/debug-credentials", summary="Check WhatsApp credentials are loaded (no auth required)")
+async def wa_debug_credentials():
+    """Quick check to see what credentials are loaded. Does NOT send a message."""
+    return {
+        "phone_id": WA_PHONE_ID or "❌ EMPTY",
+        "token_set": bool(WA_TOKEN),
+        "token_prefix": WA_TOKEN[:20] + "..." if WA_TOKEN else "❌ EMPTY",
+        "verify_token": WA_VERIFY_TOKEN or "❌ EMPTY",
+        "api_url": WA_API_URL.format(phone_id=WA_PHONE_ID or "<NOT_SET>"),
+    }
 
