@@ -5,6 +5,7 @@ aiohttp-retry==2.9.1
 asyncpg==0.30.0
 aiomysql
 PyMySQL
+asyncmy
 aiosignal==1.4.0
 alembic==1.18.4
 amqp==5.3.1
