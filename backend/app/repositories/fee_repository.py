@@ -329,6 +329,7 @@ class FeeRepository:
                 )
 
             invoice.total_amount = invoice_total
+            invoice.balance_amount = invoice_total
             created += 1
 
         await self.db.flush()
@@ -414,6 +415,7 @@ class FeeRepository:
         self.db.add(payment)
 
         invoice.paid_amount = int(invoice.paid_amount) + amount
+        invoice.balance_amount = int(invoice.total_amount) - int(invoice.paid_amount)
         if invoice.paid_amount <= 0:
             invoice.status = InvoiceStatus.unpaid
         elif invoice.paid_amount < invoice.total_amount:
@@ -443,6 +445,7 @@ class FeeRepository:
             raise ValueError("Invoice not found")
 
         invoice.paid_amount = max(0, int(invoice.paid_amount) - int(payment.amount))
+        invoice.balance_amount = int(invoice.total_amount) - int(invoice.paid_amount)
         if invoice.paid_amount == 0:
             invoice.status = InvoiceStatus.unpaid
         elif invoice.paid_amount < invoice.total_amount:

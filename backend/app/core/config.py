@@ -24,14 +24,16 @@ class Settings(BaseSettings):
 
     DATABASE_URL: str = "postgresql+asyncpg://sms_user:sms_pass@localhost:5432/sms_db"
 
-    # Render injects DATABASE_URL as "postgresql://..." — auto-fix to asyncpg driver
+    # Auto-fix DB URL to include the correct async driver prefix
     @field_validator("DATABASE_URL", mode="before")
     @classmethod
     def fix_db_url(cls, v: str) -> str:
         if v.startswith("postgres://"):
             v = v.replace("postgres://", "postgresql+asyncpg://", 1)
-        elif v.startswith("postgresql://"):
+        elif v.startswith("postgresql://") and "+" not in v.split("://")[0]:
             v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
+        elif v.startswith("mysql://") and "+" not in v.split("://")[0]:
+            v = v.replace("mysql://", "mysql+aiomysql://", 1)
         return v
     REDIS_ENABLED: bool = True
     REDIS_URL: str = "redis://localhost:6379/0"

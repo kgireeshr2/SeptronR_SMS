@@ -22,7 +22,7 @@ class School(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     board: Mapped[str | None] = mapped_column(String(50))
     medium: Mapped[str | None] = mapped_column(String(50))
     is_active: Mapped[bool] = mapped_column(Boolean, default=True)
-    deleted_at: Mapped[str | None] = mapped_column(nullable=True)
+    deleted_at: Mapped[str | None] = mapped_column(String(50), nullable=True)
 
     # Relationships
     users: Mapped[list["User"]] = relationship("User", back_populates="school", lazy="noload")

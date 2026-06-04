@@ -14,10 +14,18 @@ depends_on = None
 
 
 def upgrade() -> None:
-    # Add 'partial' to the personal_expense_status enum
-    # PostgreSQL 12+ supports this inside a transaction, but to be safe
-    # we use the COMMIT trick via raw execute
-    op.execute("ALTER TYPE personal_expense_status ADD VALUE IF NOT EXISTS 'partial' BEFORE 'paid'")
+    # MySQL/MariaDB: ENUM values are part of the column definition.
+    # Modify the column to add 'partial' to the enum values.
+    bind = op.get_bind()
+    dialect = bind.dialect.name
+    if dialect in ('mysql', 'mariadb'):
+        op.execute(
+            "ALTER TABLE personal_expenses MODIFY COLUMN status "
+            "ENUM('pending', 'partial', 'paid', 'waived') NOT NULL DEFAULT 'pending'"
+        )
+    else:
+        # PostgreSQL
+        op.execute("ALTER TYPE personal_expense_status ADD VALUE IF NOT EXISTS 'partial' BEFORE 'paid'")
 
     # Add paid_amount column (what has actually been collected so far)
     op.add_column(

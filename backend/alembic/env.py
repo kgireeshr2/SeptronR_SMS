@@ -3,6 +3,7 @@ from logging.config import fileConfig
 
 from sqlalchemy.ext.asyncio import async_engine_from_config
 from sqlalchemy import pool
+import sqlalchemy as sa
 
 from alembic import context
 
@@ -43,6 +44,9 @@ def run_migrations_offline() -> None:
 
 
 def do_run_migrations(connection):
+    is_mysql = connection.dialect.name == "mysql"
+    if is_mysql:
+        connection.execute(sa.text("SET FOREIGN_KEY_CHECKS=0"))
     context.configure(
         connection=connection,
         target_metadata=target_metadata,
@@ -50,6 +54,8 @@ def do_run_migrations(connection):
     )
     with context.begin_transaction():
         context.run_migrations()
+    if is_mysql:
+        connection.execute(sa.text("SET FOREIGN_KEY_CHECKS=1"))
 
 
 async def run_async_migrations():

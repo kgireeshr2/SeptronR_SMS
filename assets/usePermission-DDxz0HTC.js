@@ -1,0 +1,1 @@
+import{b as o}from"./index-B7kHMYM6.js";function c(){const t=o(s=>s.permissions),r=(s,e)=>{var n;return((n=o.getState().currentUser)==null?void 0:n.is_super_admin)??!1?!0:t.includes(`${s}:${e}`)};return{hasPermission:r,hasAnyPermission:s=>s.some(([e,i])=>r(e,i)),hasAllPermissions:s=>s.every(([e,i])=>r(e,i))}}export{c as u};

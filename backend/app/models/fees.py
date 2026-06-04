@@ -2,7 +2,7 @@ from datetime import date, datetime
 from enum import Enum as PyEnum
 from typing import Optional
 
-from sqlalchemy import Boolean, Computed, Date, DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, Text, UniqueConstraint
+from sqlalchemy import Boolean, Date, DateTime, ForeignKey, Integer, Numeric, SmallInteger, String, Text, UniqueConstraint
 from app.models.compat import UUID, ENUM
 from sqlalchemy.orm import Mapped, mapped_column
 
@@ -171,7 +171,7 @@ class FeeInvoice(Base, UUIDPrimaryKeyMixin, TimestampMixin):
     )
     total_amount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
     paid_amount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
-    balance_amount: Mapped[int] = mapped_column(Integer, Computed('total_amount - paid_amount', persisted=True), nullable=False)
+    balance_amount: Mapped[int] = mapped_column(Integer, nullable=False, default=0)
 
 
 class FeeInvoiceItem(Base, UUIDPrimaryKeyMixin):

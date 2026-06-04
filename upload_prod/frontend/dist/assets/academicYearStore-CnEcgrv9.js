@@ -1,0 +1,1 @@
+import{h as s,p as r}from"./index-B50w1THR.js";const c=s()(r(a=>({selectedYear:null,years:[],setSelectedYear:e=>a({selectedYear:e}),setYears:e=>a({years:e})}),{name:"sms-academic-year"}));export{c as u};
