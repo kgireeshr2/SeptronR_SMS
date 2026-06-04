@@ -8,10 +8,13 @@ class Base(DeclarativeBase):
     pass
 
 
+# pool_pre_ping is broken with aiomysql (ping() missing 'reconnect' arg)
+_is_mysql = settings.DATABASE_URL.startswith("mysql")
+
 engine = create_async_engine(
     settings.DATABASE_URL,
     echo=settings.DEBUG,
-    pool_pre_ping=True,
+    pool_pre_ping=not _is_mysql,
     pool_size=5,
     max_overflow=5,
 )
