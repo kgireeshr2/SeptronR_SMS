@@ -23,8 +23,6 @@ _engine_kwargs = dict(
 if _is_mysql:
     _engine_kwargs["connect_args"] = {
         "connect_timeout": 10,
-        "read_timeout": 30,
-        "write_timeout": 30,
     }
 
 engine = create_async_engine(settings.DATABASE_URL, **_engine_kwargs)
