@@ -1,0 +1,38 @@
+name: Unzip on Push
+
+on:
+  push:
+    paths:
+      - '**.zip'
+
+jobs:
+  unzip:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Find and unzip all .zip files
+        run: |
+          find . -name "*.zip" -not -path "./.git/*" | while read zipfile; do
+            echo "Unzipping: $zipfile"
+            dir=$(dirname "$zipfile")
+            unzip -o "$zipfile" -d "$dir"
+            rm "$zipfile"
+            echo "Done: $zipfile"
+          done
+
+      - name: Commit extracted files
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add -A
+          if git diff --staged --quiet; then
+            echo "Nothing to commit"
+          else
+            git commit -m "chore: auto-unzip uploaded archive(s)"
+            git push
+          fi
