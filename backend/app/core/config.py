@@ -18,6 +18,8 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: List[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "https://septronr.com",
+        "https://www.septronr.com",
         "https://smsapi.septronr.com",
         "https://septronr-sms.onrender.com",
     ]
