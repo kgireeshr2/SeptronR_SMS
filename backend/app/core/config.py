@@ -35,7 +35,9 @@ class Settings(BaseSettings):
         elif v.startswith("postgresql://") and "+" not in v.split("://")[0]:
             v = v.replace("postgresql://", "postgresql+asyncpg://", 1)
         elif v.startswith("mysql://") and "+" not in v.split("://")[0]:
-            v = v.replace("mysql://", "mysql+aiomysql://", 1)
+            v = v.replace("mysql://", "mysql+asyncmy://", 1)
+        elif v.startswith("mysql+aiomysql://"):
+            v = v.replace("mysql+aiomysql://", "mysql+asyncmy://", 1)
         return v
     REDIS_ENABLED: bool = True
     REDIS_URL: str = "redis://localhost:6379/0"
