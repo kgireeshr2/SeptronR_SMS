@@ -233,7 +233,22 @@ class StudentRepository:
         school_id: UUID,
         enrollment_data: StudentEnrollmentCreate,
     ) -> StudentEnrollment:
-        """Add enrollment for student."""
+        """Add enrollment for student.
+
+        A student must have only one *current* enrollment at a time. When the
+        new enrollment is current (e.g. a class/section change from the edit
+        modal), demote any existing current enrollment(s) to history first —
+        otherwise the student would show up in both the old and new section.
+        """
+        if enrollment_data.is_current:
+            await self.session.execute(
+                update(StudentEnrollment)
+                .where(StudentEnrollment.student_id == student_id)
+                .where(StudentEnrollment.school_id == school_id)
+                .where(StudentEnrollment.is_current == True)
+                .values(is_current=False)
+            )
+
         enrollment = StudentEnrollment(
             school_id=school_id,
             student_id=student_id,
