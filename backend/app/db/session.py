@@ -8,14 +8,14 @@ class Base(DeclarativeBase):
     pass
 
 
-# pool_pre_ping is broken with asyncmy/aiomysql: SQLAlchemy calls ping() with no
-# args, but the driver's ping() requires a positional 'reconnect' arg. Disable it
-# for MySQL and rely on pool_recycle instead.
 _is_mysql = settings.DATABASE_URL.startswith("mysql")
 
+# pool_pre_ping validates each pooled connection before use and transparently
+# replaces ones the server has dropped — essential against managed/shared MySQL
+# hosts that reset idle or remote connections ([Errno 104] reset by peer).
 _engine_kwargs = dict(
     echo=settings.DEBUG,
-    pool_pre_ping=not _is_mysql,
+    pool_pre_ping=True,
     pool_size=3,
     max_overflow=2,
     pool_recycle=1800,       # recycle connections every 30 min
@@ -28,6 +28,22 @@ if _is_mysql:
     }
 
 engine = create_async_engine(settings.DATABASE_URL, **_engine_kwargs)
+
+
+# ── asyncmy pre-ping compatibility fix ──────────────────────────────────────
+# SQLAlchemy's pymysql do_ping inspects pymysql's Connection.ping signature to
+# decide whether to call ping() with no args. When pymysql defaults reconnect
+# to False, it calls ping() with no args — but the asyncmy adapter's
+# ping(self, reconnect) requires that positional arg, raising
+# "ping() missing required positional argument: 'reconnect'" on EVERY checkout.
+# Forcing _send_false_to_ping=True makes do_ping call ping(False), which asyncmy
+# accepts — so pool_pre_ping works correctly on asyncmy. (_send_false_to_ping is
+# a non-data memoized_property, so setting it on the instance shadows it.)
+if _is_mysql:
+    try:
+        engine.sync_engine.dialect._send_false_to_ping = True
+    except Exception:
+        pass
 
 async_session_factory = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
