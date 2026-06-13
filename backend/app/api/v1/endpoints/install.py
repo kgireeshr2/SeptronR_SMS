@@ -15,15 +15,43 @@ from typing import Optional
 from fastapi import APIRouter, HTTPException, Depends
 from pydantic import BaseModel
 from sqlalchemy import text
+from sqlalchemy.exc import OperationalError, DBAPIError
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.config import settings
-from app.db.session import engine, get_db, Base
+from app.db.session import engine, get_db, Base, async_session_factory
 
 router = APIRouter(prefix="/install", tags=["Installation"])
 
 
 # ── Helpers ───────────────────────────────────────────────────────────────────
+
+async def _run_seed_step(fn, *args, attempts: int = 4):
+    """Run an idempotent seed step with a FRESH session and retries.
+
+    Managed/shared MySQL hosts (e.g. Hostinger) intermittently reset remote
+    connections mid-query ([Errno 104]). On such a failure we roll back, dispose
+    the pool so dead connections are dropped, back off, and retry on a clean
+    session. The seed functions are idempotent, so re-running is safe.
+    """
+    last_exc: Exception | None = None
+    for attempt in range(1, attempts + 1):
+        async with async_session_factory() as session:
+            try:
+                return await fn(session, *args)
+            except (OperationalError, DBAPIError) as e:
+                last_exc = e
+                try:
+                    await session.rollback()
+                except Exception:
+                    pass
+                await engine.dispose()  # drop possibly-dead pooled connections
+                if attempt < attempts:
+                    await asyncio.sleep(attempt)  # 1s, 2s, 3s backoff
+                    continue
+                raise
+    raise last_exc  # pragma: no cover
+
 
 def _verify_token(secret: str):
     """Validate the install secret key."""
@@ -113,10 +141,10 @@ async def install(payload: InstallRequest, db: AsyncSession = Depends(get_db)):
         from app.scripts.seed_data import (
             seed_permissions, seed_roles, seed_super_admin
         )
-        perm_map = await seed_permissions(db)
+        perm_map = await _run_seed_step(seed_permissions)
         steps.append(f"Seeded {len(perm_map)} permissions")
 
-        role_map = await seed_roles(db, perm_map)
+        role_map = await _run_seed_step(seed_roles, perm_map)
         steps.append(f"Seeded {len(role_map)} system roles")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Permission/role seeding failed: {str(e)}")
@@ -131,7 +159,7 @@ async def install(payload: InstallRequest, db: AsyncSession = Depends(get_db)):
         if payload.admin_password:
             settings.SUPER_ADMIN_PASSWORD = payload.admin_password
 
-        await seed_super_admin(db, role_map)
+        await _run_seed_step(seed_super_admin, role_map)
         steps.append(f"Super admin created: {settings.SUPER_ADMIN_EMAIL}")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Super admin creation failed: {str(e)}")
