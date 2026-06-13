@@ -8,11 +8,14 @@ class Base(DeclarativeBase):
     pass
 
 
+# pool_pre_ping is broken with asyncmy/aiomysql: SQLAlchemy calls ping() with no
+# args, but the driver's ping() requires a positional 'reconnect' arg. Disable it
+# for MySQL and rely on pool_recycle instead.
 _is_mysql = settings.DATABASE_URL.startswith("mysql")
 
 _engine_kwargs = dict(
     echo=settings.DEBUG,
-    pool_pre_ping=True,      # asyncmy supports this correctly
+    pool_pre_ping=not _is_mysql,
     pool_size=3,
     max_overflow=2,
     pool_recycle=1800,       # recycle connections every 30 min
