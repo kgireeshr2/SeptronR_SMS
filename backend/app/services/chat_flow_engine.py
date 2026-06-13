@@ -1792,9 +1792,10 @@ class FlowEngine:
                     (id, school_id, invoice_id, amount, payment_date, payment_method,
                      receipt_number, collected_by, created_at)
                     VALUES
-                    (gen_random_uuid(), :school_id, :invoice_id, :amount, CAST(NOW() AS DATE),
+                    (:id, :school_id, :invoice_id, :amount, CAST(NOW() AS DATE),
                      :method, :receipt, :collected_by, NOW())"""),
             {
+                "id":           _new_id(),
                 "school_id":    school_id,
                 "invoice_id":   invoice_id,
                 "amount":       amount,

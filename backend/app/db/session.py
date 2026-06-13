@@ -1,3 +1,6 @@
+import ssl
+
+from sqlalchemy.engine.url import make_url
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker, AsyncSession
 from sqlalchemy.orm import DeclarativeBase
 
@@ -8,42 +11,31 @@ class Base(DeclarativeBase):
     pass
 
 
-_is_mysql = settings.DATABASE_URL.startswith("mysql")
+# asyncpg does not understand libpq's `sslmode` query param (that's psycopg2).
+# Managed Postgres providers (Aiven, etc.) hand out URLs ending in
+# `?sslmode=require`, so translate it into an asyncpg `ssl` connect_arg. We use a
+# context that encrypts but skips CA verification (equivalent to sslmode=require)
+# to avoid having to distribute the provider's CA cert.
+_url = make_url(settings.DATABASE_URL)
+_connect_args: dict = {}
+_query = dict(_url.query)
+_sslmode = _query.pop("sslmode", None)
+if _sslmode and _sslmode != "disable":
+    _ctx = ssl.create_default_context()
+    _ctx.check_hostname = False
+    _ctx.verify_mode = ssl.CERT_NONE
+    _connect_args["ssl"] = _ctx
+    _url = _url.set(query=_query)
 
-# pool_pre_ping validates each pooled connection before use and transparently
-# replaces ones the server has dropped — essential against managed/shared MySQL
-# hosts that reset idle or remote connections ([Errno 104] reset by peer).
-_engine_kwargs = dict(
+engine = create_async_engine(
+    _url,
     echo=settings.DEBUG,
-    pool_pre_ping=True,
-    pool_size=3,
-    max_overflow=2,
-    pool_recycle=1800,       # recycle connections every 30 min
-    pool_timeout=30,
+    pool_pre_ping=True,      # asyncpg supports this correctly
+    pool_size=5,
+    max_overflow=5,
+    pool_recycle=1800,       # recycle connections every 30 min (cloud idle timeouts)
+    connect_args=_connect_args,
 )
-
-if _is_mysql:
-    _engine_kwargs["connect_args"] = {
-        "connect_timeout": 10,
-    }
-
-engine = create_async_engine(settings.DATABASE_URL, **_engine_kwargs)
-
-
-# ── asyncmy pre-ping compatibility fix ──────────────────────────────────────
-# SQLAlchemy's pymysql do_ping inspects pymysql's Connection.ping signature to
-# decide whether to call ping() with no args. When pymysql defaults reconnect
-# to False, it calls ping() with no args — but the asyncmy adapter's
-# ping(self, reconnect) requires that positional arg, raising
-# "ping() missing required positional argument: 'reconnect'" on EVERY checkout.
-# Forcing _send_false_to_ping=True makes do_ping call ping(False), which asyncmy
-# accepts — so pool_pre_ping works correctly on asyncmy. (_send_false_to_ping is
-# a non-data memoized_property, so setting it on the instance shadows it.)
-if _is_mysql:
-    try:
-        engine.sync_engine.dialect._send_false_to_ping = True
-    except Exception:
-        pass
 
 async_session_factory = async_sessionmaker(
     engine, class_=AsyncSession, expire_on_commit=False
