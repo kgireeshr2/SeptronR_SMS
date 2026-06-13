@@ -1,4 +1,6 @@
 ﻿"""School service: handles school creation and default seeding."""
+import uuid
+
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, text
 
@@ -287,10 +289,11 @@ async def seed_school_defaults(school_id: str, db: AsyncSession) -> None:
                 "INSERT INTO document_templates "
                 "(id, school_id, template_name, template_type, canvas_width_mm, canvas_height_mm, "
                 "template_html, layout_json, is_default, is_active, created_at, updated_at) "
-                "VALUES (gen_random_uuid(), :sid, :tname, :ttype, :w, :h, :html, NULL, :is_def, true, "
+                "VALUES (:id, :sid, :tname, :ttype, :w, :h, :html, NULL, :is_def, true, "
                 "NOW(), NOW())"
             ),
             {
+                "id": str(uuid.uuid4()),
                 "sid": school_id,
                 "tname": tpl["template_name"],
                 "ttype": tpl["template_type"],
@@ -318,10 +321,11 @@ async def seed_school_defaults(school_id: str, db: AsyncSession) -> None:
                 "INSERT INTO notification_templates "
                 "(id, school_id, name, channels, event_trigger, subject, body_template, "
                 "is_active, is_default, created_at, updated_at) "
-                "VALUES (gen_random_uuid(), :sid, :name, :ch, :evt, :subj, :body, "
+                "VALUES (:id, :sid, :name, :ch, :evt, :subj, :body, "
                 ":is_active, :is_def, NOW(), NOW())"
             ),
             {
+                "id": str(uuid.uuid4()),
                 "sid": school_id,
                 "name": ntpl["name"],
                 "ch": ntpl["channel"],
