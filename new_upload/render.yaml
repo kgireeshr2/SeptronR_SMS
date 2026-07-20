@@ -1,0 +1,123 @@
+# Render Blueprint — production deploy for the SMS ERP.
+#
+# Notes:
+#  - web + worker run on the `starter` plan: production must stay always-on (the
+#    free plan spins down → cold starts, dropped Celery tasks) and disks require a
+#    paid plan. Adjust plans to your budget.
+#  - Redis is provisioned here and wired to the app + Celery (REDIS_ENABLED=true),
+#    which enables logout/JWT-blacklist, login lockout, OTP, and all async delivery.
+#  - Uploads are stored on a persistent disk (survive restarts/redeploys) instead of
+#    the ephemeral /tmp. For multi-instance scale, switch to S3 (STORAGE_BACKEND=s3).
+#  - Secrets (DATABASE_URL, admin creds, provider keys) are `sync: false` → set them
+#    in the Render dashboard; they are never committed to git.
+
+envVarGroups:
+  - name: sms-shared
+    envVars:
+      - key: APP_ENV
+        value: production
+      - key: DEBUG
+        value: "false"
+      - key: DATABASE_URL
+        sync: false
+      - key: INSTALL_SECRET_KEY
+        sync: false
+      - key: SUPER_ADMIN_EMAIL
+        sync: false
+      - key: SUPER_ADMIN_USERNAME
+        value: superadmin
+      - key: SUPER_ADMIN_PASSWORD
+        sync: false
+      - key: ALLOWED_ORIGINS
+        value: '["https://septronr.com","https://www.septronr.com","https://smsapi.septronr.com","https://septronr-sms.onrender.com"]'
+      - key: UPLOAD_DIR
+        value: /var/data/uploads
+      - key: REDIS_ENABLED
+        value: "true"
+      # WhatsApp inbound webhook signature verification (Meta App Secret)
+      - key: META_APP_SECRET
+        sync: false
+      # Payments (Razorpay) — global fallback; per-school keys live in Settings
+      - key: RAZORPAY_KEY_ID
+        sync: false
+      - key: RAZORPAY_KEY_SECRET
+        sync: false
+      - key: RAZORPAY_WEBHOOK_SECRET
+        sync: false
+      # Web push (VAPID)
+      - key: VAPID_PUBLIC_KEY
+        sync: false
+      - key: VAPID_PRIVATE_KEY
+        sync: false
+
+services:
+  - type: web
+    name: sms-backend
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: starter
+    region: singapore
+    healthCheckPath: /health
+    disk:
+      name: uploads
+      mountPath: /var/data/uploads
+      sizeGB: 5
+    envVars:
+      - fromGroup: sms-shared
+      - key: SECRET_KEY
+        generateValue: true
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: sms-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: sms-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: sms-redis
+          property: connectionString
+
+  - type: worker
+    name: sms-worker
+    runtime: docker
+    dockerfilePath: backend/Dockerfile
+    dockerContext: backend
+    plan: starter
+    region: singapore
+    dockerCommand: celery -A app.tasks.celery_app worker -B --loglevel=info
+    envVars:
+      - fromGroup: sms-shared
+      # Share the SAME signing key as the web service (JWTs must validate across both)
+      - key: SECRET_KEY
+        fromService:
+          type: web
+          name: sms-backend
+          envVarKey: SECRET_KEY
+      - key: REDIS_URL
+        fromService:
+          type: redis
+          name: sms-redis
+          property: connectionString
+      - key: CELERY_BROKER_URL
+        fromService:
+          type: redis
+          name: sms-redis
+          property: connectionString
+      - key: CELERY_RESULT_BACKEND
+        fromService:
+          type: redis
+          name: sms-redis
+          property: connectionString
+
+  - type: redis
+    name: sms-redis
+    plan: starter
+    region: singapore
+    maxmemoryPolicy: noeviction   # don't drop queued Celery tasks
+    ipAllowList: []               # internal-only (no public access)

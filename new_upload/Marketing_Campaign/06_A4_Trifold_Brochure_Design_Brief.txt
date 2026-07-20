@@ -1,0 +1,55 @@
+SEPTRONR A4 TRI-FOLD DESIGN BRIEF
+
+Objective:
+Create a premium-looking brochure that immediately communicates trust, clarity, and product depth so school decision makers call for a demo.
+
+Audience:
+School owners, principals, administrators, and accounts teams.
+
+Tone:
+Modern, confident, and practical. Not overly technical.
+
+Must include:
+- Company name: SeptronR
+- Tagline: A leading tech solution
+- Phone numbers: 9490426524, 7416123742
+- Address: Banglore 560036
+- Website: https://septronr.com
+- Clear representation of School Management System features
+- Mobile app section with visual emphasis
+- Strong CTA on front and back panels
+
+Panel-level visual execution:
+- Front cover: high-impact hero visual + concise value statement
+- Inside panels: feature storytelling with dashboard and mobile screenshots
+- Back panel: strong contact and QR CTA
+
+Feature coverage required in icons/text:
+- Admissions
+- Student management
+- Staff management
+- Attendance
+- Timetable
+- Homework
+- Exams and results
+- Fee management
+- Accounting support
+- Notifications and WhatsApp communication
+- Transport
+- Inventory
+- Audit logs and role-based permissions
+- Mobile app for parent/teacher/admin
+
+Design quality bar:
+- Premium whitespace and grid alignment
+- Consistent icon style
+- Real product screenshots preferred
+- High readability in print from 2-3 feet distance
+- CTA contrast must stand out
+
+Print specifications:
+- A4 landscape
+- Tri-fold roll fold
+- 3 mm bleed
+- CMYK export
+- PDF/X print-ready output

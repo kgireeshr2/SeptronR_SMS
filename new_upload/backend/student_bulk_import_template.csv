@@ -1,0 +1,4 @@
+first_name,last_name,date_of_birth,gender,blood_group,religion,category,nationality,admission_date,admission_number,phone,email,address,city,state,pincode,class_name,section_name,roll_number,father_name,father_phone,father_email,father_occupation,mother_name,mother_phone,mother_email,mother_occupation,guardian_name,guardian_phone,guardian_email,guardian_relation,fee_master_name
+Aarav,Sharma,2015-08-21,Male,O+,Hindu,General,Indian,2024-06-01,,,,,,,,Grade 1,A,12,Rajesh Sharma,9800000001,rajesh@example.com,Engineer,Sunita Sharma,9800000002,,Homemaker,,,,,Grade 1 Standard
+Diya,Patel,2016-02-10,Female,A+,Hindu,OBC,Indian,2024-06-01,,,,,,,,Grade 1,B,5,Amit Patel,9800000003,,Doctor,,,,,,,,,
+Kabir,Khan,2014-11-30,Male,,Islam,,,2023-06-15,,,,,,,,Grade 2,A,,,,,,,,,,Imran Khan,9800000004,,guardian,
